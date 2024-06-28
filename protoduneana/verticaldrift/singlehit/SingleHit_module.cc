@@ -49,19 +49,29 @@
 using std::vector;
 using std::string;
 
-typedef struct { float z, y, ECol, EInd1 ,EInd2 , PeakTime; int group, ch_Col, ch_Ind1, ch_Ind2; } point_t, *point;
+typedef struct 
+{ 
+  float z, y, ECol, EInd1 ,EInd2 , PeakTime; 
+  int group, ch_Col, ch_Ind1, ch_Ind2; 
+  std::vector<int> vMCPart_pdg,  vMCPart_mom;
+  std::vector<std::string> vMCPart_prc;
+} point_t, *point;
 
 typedef struct                                                                
 {                                                                                 
   float Sumz , Sumy , SumECol , ECol , EInd1 , EInd2 , PeakTime;                  
   int Npoint, NCol , NInd1 , NInd2;
   std::list<int> lChannelCol , lChannelInd1 , lChannelInd2;
+  std::vector<std::vector<int>> vvMCPDG , vvMCMOM;
+  std::vector<std::vector<std::string>> vvMCPRC;
 } TempCluster ;                            
                               
 typedef struct
 { 
   float z , y , ECol , EInd1 , EInd2 , PeakTime;
   int Npoint, NCol , NInd1 , NInd2;
+  std::vector<std::vector<int>> vvMCPDG , vvMCMOM;
+  std::vector<std::vector<std::string>> vvMCPRC;
 } Cluster ; 
 
 namespace pdvdana {
@@ -103,12 +113,12 @@ private:
 
   geo::WireID fWire;
 
-  int fHitNumber   = -999;
-  int fPlane       = -999;
-  int fChannel     = -999;
-  int fHitWidth    = -999;
-  int fTimeIsolation      = -999;
-  int fCoincidence = -999;
+  int fHitNumber     = -999;
+  int fPlane         = -999;
+  int fChannel       = -999;
+  int fHitWidth      = -999;
+  int fTimeIsolation = -999;
+  int fCoincidence   = -999;
 
   float fEnergy         = -999.;
   float fPeakTime       = -999.;
@@ -143,6 +153,10 @@ private:
   std::list<int>   lChInd1Point;
   std::list<int>   lChInd2Point;
 
+  std::vector<int> vMCPart_pdgCode;
+  std::vector<int> vMCPart_mother;
+  std::vector<std::string> vMCPart_process;
+
   // Cluster Tree Variables
   int NCluster;
 
@@ -157,6 +171,10 @@ private:
   std::vector<int>   vNColCluster; 
   std::vector<int>   vNInd1Cluster; 
   std::vector<int>   vNInd2Cluster;
+
+  std::vector<std::vector<std::vector<std::string>>> vvMCPRCCluster;
+  std::vector<std::vector<std::vector<int>>>         vvMCMOMCluster;
+  std::vector<std::vector<std::vector<int>>>         vvMCPDGCluster;
 
   //Input variables
   std::string fSpacePointLabel;
@@ -183,6 +201,8 @@ private:
   float fNumberConvStep;
   float fCovering;
 
+  float fCalibration;
+
   // geometry
   const geo::Geometry* fGeom;
 
@@ -205,6 +225,10 @@ private:
   std::vector<int>   vChannelColByEvent;
   std::vector<int>   vChInd1PointByEvent;
   std::vector<int>   vChInd2PointByEvent;
+  
+  std::vector<std::vector<std::string>> vvMCPRCByEvent;
+  std::vector<std::vector<int>>         vvMCMOMByEvent;
+  std::vector<std::vector<int>>         vvMCPDGByEvent;
 
   //function needed
   bool Inside( int k , std::list<int> liste);
@@ -237,23 +261,32 @@ private:
                              std::list<int> & listCh1SP       , std::list<int> & listCh2SP );
 
   int GetXYZIsolatedPoint( std::vector<float> vYPoint      , std::vector<float> vZPoint      ,
-                           std::vector<float> vEInd1Point  , std::vector<float> vEInd2Point  ,
-                           std::vector<int>   vChInd1Point , std::vector<int>   vChInd2Point ,
-                           std::vector<float> vEnergyCol   , std::vector<float> vPeakTimeCol ,
-                           std::vector<int>   vChannelCol  ,
-                           float fElectronVelocity , float fTickToMus ,
-                           float radiusInt , float radiusExt   ,
-                           std::vector<float> &vZIsolated      , std::vector<float> &vYIsolated ,
-                           std::vector<float> &vEColIsolated   , std::vector<float> &vPTIsolated ,
-                           std::vector<float> &vEInd1Isolated  , std::vector<float> &vEInd2Isolated ,
-                           std::vector<int>   &vChColIsolated  , std::vector<int>   &vChInd1Isolated ,
-                           std::vector<int>   &vChInd2Isolated );
+                                            std::vector<float> vEInd1Point  , std::vector<float> vEInd2Point  ,
+                                            std::vector<int>   vChInd1Point , std::vector<int>   vChInd2Point ,
+                                            std::vector<float> vEnergyCol   , std::vector<float> vPeakTimeCol ,
+                                            std::vector<int>   vChannelCol  ,
+                                            std::vector<std::vector<int>> vvMCPDG ,
+                                            std::vector<std::vector<int>> vvMCMOM ,
+                                            std::vector<std::vector<std::string>> vvMCPRC ,
+                                            float fElectronVelocity , float fTickToMus ,
+                                            float radiusInt , float radiusExt   ,
+                                            std::vector<float> &vZIsolated      , std::vector<float> &vYIsolated ,
+                                            std::vector<float> &vEColIsolated   , std::vector<float> &vPTIsolated ,
+                                            std::vector<float> &vEInd1Isolated  , std::vector<float> &vEInd2Isolated ,
+                                            std::vector<int>   &vChColIsolated  , std::vector<int>   &vChInd1Isolated ,
+                                            std::vector<int>   &vChInd2Isolated ,
+                                            std::vector<std::vector<int>> & vvMCPDGIsolated ,
+                                            std::vector<std::vector<int>> & vvMCMOMIsolated ,
+                                            std::vector<std::vector<std::string>> & vvMCPRCIsolated );
 
   // CLUSTER FUNCTIONS
   point gen_zy(int size , std::vector<float> vZ , std::vector<float> vY , 
                           std::vector<float> vECol , std::vector<float> vPT, 
                           std::vector<float> vEInd1 , std::vector<float> vEInd2 , 
-                          std::vector<int> vChCol , std::vector<int> vChInd1 , std::vector<int> vChInd2);
+                          std::vector<int> vChCol , std::vector<int> vChInd1 , std::vector<int> vChInd2 ,
+			  std::vector<std::vector<int>> vvMCPart_pdg , 
+			  std::vector<std::vector<int>> vvMCPart_mom , 
+			  std::vector<std::vector<std::string>> vvMCPart_prc);
   
   float dist2(point a, point b);
 
@@ -306,6 +339,7 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     fNumberConvStep(p.get<int>("NumberConvStep")),
     fCovering(p.get<float>("Covering"))
 
+    //fCalibration(p.get<float>("Calibration"))
     //fTagHDVD(p.get<int>("tagPD"))
     // More initializers here.
 {
@@ -328,6 +362,11 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   // Initializing colection Hit counter
   fHitCounter = 0;
+
+  //clock 
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+  art::ServiceHandle<cheat::BackTrackerService> bt_serv;
+  art::ServiceHandle< cheat::ParticleInventoryService > pi_serv;
 
   //Retreive hit list
   //art::InputTag hittag(fHitLabel);
@@ -391,6 +430,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     lChInd2Point.clear();
     lChInd2Point.push_back(-999);
 
+    vMCPart_pdgCode.clear();
+    vMCPart_pdgCode.push_back(-999);
+    vMCPart_mother.clear();
+    vMCPart_mother.push_back(-999);
+    vMCPart_process.clear();
+    vMCPart_mother.push_back("nothing");
+
     tHitTree->Fill();
     return;
   } 
@@ -408,13 +454,38 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   for(int index =0 ; index<fNHits; index++)
   {
+
     const recob::Hit& hit = HitList->at(index);
+    if (!evt.isRealData()) 
+    {
+      for (const auto & ide : bt_serv->HitToEveTrackIDEs(clockData, hit))
+      {
+        const simb::MCParticle* curr_part = pi_serv->TrackIdToParticle_P(ide.trackID);
+	vMCPart_pdgCode.clear();
+        vMCPart_pdgCode.push_back( curr_part.PdgCode() );
+	vMCPart_mother.clear();
+	vMCPart_mother.push_back(  curr_part.Mother()  );
+	vMCPart_process.clear();
+        vMCPart_process.push_back( curr_part.Process() );
+
+      }
+    }      
+    else
+    {
+      vMCPart_pdgCode.clear();
+      vMCPart_pdgCode.push_back(-999);
+      vMCPart_mother.clear();
+      vMCPart_mother.push_back(-999);
+      vMCPart_process.clear();
+      vMCPart_mother.push_back("data");
+    }
+
     fWire                 = hit.WireID();
     fChannel              = hit.Channel();
     fPlane                = hit.WireID().Plane;
     fHitWidth             = hit.EndTick() - hit.StartTick();
 
-    fEnergy         = hit.SummedADC();///fADCtoEl;
+    fEnergy         = hit.SummedADC();//fCalibration;//electron
     fPeakTime       = hit.PeakTime();//*ftick_in_mus;
     fSigmaPeakTime  = hit.SigmaPeakTime();//*ftick_in_mus;
     fRMS            = hit.RMS();
@@ -548,6 +619,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       //vPeakTimeColByEvent.push_back( 0 );
       vChannelColByEvent.push_back( fChannel );
 
+      vvMCPDGByEvent.push_back( vMCPart_pdgCode );
+      vvMCPRCByEvent.push_back( vMCPart_process );
+      vvMCMOMByEvent.push_back( vMCPart_mother );
+
       z++;
       ch1++;
       ch2++;
@@ -566,8 +641,11 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   std::vector<int>   vChColIsolated;
   std::vector<int>   vChInd1Isolated;
   std::vector<int>   vChInd2Isolated;
+  std::vector<std::vector<int>> vvMCPDGIsolated;
+  std::vector<std::vector<int>> vvMCMOMIsolated;
+  std::vector<std::vector<std::string>> vvMCPRCIsolated;
 
-  int nIso = GetXYZIsolatedPoint( vYPointByEvent , vZPointByEvent , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , fElectronVelocity , fTickTimeInMus , fRadiusInt , fRadiusExt , vZIsolated , vYIsolated ,vEColIsolated , vPTIsolated , vEInd1Isolated , vEInd2Isolated , vChColIsolated , vChInd1Isolated , vChInd2Isolated );
+  int nIso = GetXYZIsolatedPoint( vYPointByEvent , vZPointByEvent , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vvMCPDGByEvent , vvMCMOMByEvent , vvMCPRCByEvent , fElectronVelocity , fTickTimeInMus , fRadiusInt , fRadiusExt , vZIsolated , vYIsolated ,vEColIsolated , vPTIsolated , vEInd1Isolated , vEInd2Isolated , vChColIsolated , vChInd1Isolated , vChInd2Isolated , vvMCPDGIsolated , vvMCMOMIsolated , vvMCPRCIsolated );
 
   if (nIso == 0)
   {
@@ -586,6 +664,11 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vNInd1Cluster.push_back(-999);
     vNInd2Cluster.push_back(-999);
 
+    std::vector<std::vector<int>>         vNo = {{-999}};
+    std::vector<std::vector<std::string>> vSt = {{"nothing"}};
+    vvvMCPDGCluster.push_back( vNo );
+    vvvMCMOMCluster.push_back( vNo );
+    vvvMCPRCCluster.push_back( vSt ); 
     tClusterTree->Fill();
     return;
   }
@@ -594,7 +677,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   int PTSIsolated = vZIsolated.size();
   std::cout << " THERE IS " << PTSIsolated << " ISOLATED POINTS IN EVENT " << fEventID << std::endl;
 
-  point v = gen_zy( PTSIsolated , vZIsolated , vYIsolated , vEColIsolated , vPTIsolated , vEInd1Isolated , vEInd2Isolated ,  vChColIsolated , vChInd1Isolated , vChInd2Isolated);
+  point v = gen_zy( PTSIsolated , vZIsolated , vYIsolated , vEColIsolated , vPTIsolated , vEInd1Isolated , vEInd2Isolated ,  vChColIsolated , vChInd1Isolated , vChInd2Isolated ,vvMCPDGIsolated , vvMCMOMIsolated , vvMCPRCIsolated );
 
   std::vector<std::vector<float> > dataPos = GetData(PTSIsolated,v);
   std::vector<std::vector<float> > clustersPos;
@@ -661,7 +744,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vNColCluster.push_back(vCluster[j].NCol);
     vNInd1Cluster.push_back(vCluster[j].NInd1);
     vNInd2Cluster.push_back(vCluster[j].NInd2);
-
+    
+    vvvMCMOMCluster.push_back(vCluster[j].vMCMOM);
+    vvvMCPDGCluster.push_back(vCluster[j].vMCPDG);
+    vvvMCPCRCluster.push_back(vCluster[j].vMCPCR);
   }
   tClusterTree->Fill();
    
@@ -707,7 +793,9 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   lEInd2Point.clear();
   lChInd1Point.clear();
   lChInd2Point.clear();
-
+  vMCPart_pdgCode.clear();
+  vMCPart_mother.clear();
+  vMCPart_process.clear();
 
   NCluster = -999;
 
@@ -788,6 +876,11 @@ void pdvdana::SingleHit::beginJob()
   tHitTree->Branch("listChInd1Point"        , &lChInd1Point );
   tHitTree->Branch("listChInd2Point"        , &lChInd2Point );
 
+  tHitTree->Branch("vectorOFMCParticlePDG"  , &vMCPart_pdgCode );
+  tHitTree->Branch("vectorOFMCParticleMom"  , &vMCPart_mother  );
+  tHitTree->Branch("vectorOFMCParticlePrc"  , &vMCPart_process );
+
+
   // CLUSTER TREE
   tClusterTree = tfs->make<TTree>("ClusterTree","ClusterTree");
 
@@ -803,6 +896,9 @@ void pdvdana::SingleHit::beginJob()
   tClusterTree->Branch("NumberOfPlane0"     , &vNInd1Cluster  );
   tClusterTree->Branch("NumberOfPlane1"     , &vNInd2Cluster  );
   tClusterTree->Branch("PeakTime"           , &vPTCluster     );
+  tClusterTree->Branch("MCParticlePDG"      , &vvvMCPDGCluster );
+  tClusterTree->Branch("MCParticleMOM"      , &vvvMCMOMCluster );
+  tClusterTree->Branch("MCParticlePRC"      , &vvvMCPRCCluster );
 }
 
 
@@ -1052,13 +1148,19 @@ int pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYPoint      , s
 					    std::vector<int>   vChInd1Point , std::vector<int>   vChInd2Point ,
 					    std::vector<float> vEnergyCol   , std::vector<float> vPeakTimeCol , 
 					    std::vector<int>   vChannelCol  , 
+                                            std::vector<std::vector<int>> vvMCPDG ,
+					    std::vector<std::vector<int>> vvMCMOM ,
+					    std::vector<std::vector<std::string>> vvMCPRC ,
 					    float fElectronVelocity , float fTickToMus ,
 					    float radiusInt , float radiusExt   ,
 					    std::vector<float> &vZIsolated      , std::vector<float> &vYIsolated ,
                                             std::vector<float> &vEColIsolated   , std::vector<float> &vPTIsolated ,
                                             std::vector<float> &vEInd1Isolated  , std::vector<float> &vEInd2Isolated ,
                                             std::vector<int>   &vChColIsolated  , std::vector<int>   &vChInd1Isolated ,
-                                            std::vector<int>   &vChInd2Isolated )
+                                            std::vector<int>   &vChInd2Isolated ,
+					    std::vector<std::vector<int>> & vvMCPDGIsolated ,
+                                            std::vector<std::vector<int>> & vvMCMOMIsolated ,
+                                            std::vector<std::vector<std::string>> & vvMCPRCIsolated )
 {
 
   if (vYPoint.size() != vZPoint.size())  throw std::invalid_argument( "BIG PROBLEM" );
@@ -1073,6 +1175,9 @@ int pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYPoint      , s
   vChColIsolated.clear();
   vChInd1Isolated.clear();
   vChInd2Isolated.clear();
+  vvMCPDGIsolated.clear();
+  vvMCMOMIsolated.clear();
+  vvMCPRCIsolated.clear();
 
   int nIso = 0;
   int npoint = vYPoint.size();
@@ -1130,6 +1235,9 @@ int pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYPoint      , s
       vChInd1Isolated.push_back(vChInd1Point[k]);
       vChInd2Isolated.push_back(vChInd1Point[k]);
 
+      vvMCPDGIsolated.push_back(vvMCPDG[k]);
+      vvMCMOMIsolated.push_back(vvMCMOM[k]);
+      vvMCPRCIsolated.push_back(vvMCPRC[k]);
       continue;
     }
     else
@@ -1159,7 +1267,7 @@ float pdvdana::SingleHit::randf(float m)
     return m * rand() / (RAND_MAX - 1.);
 }
 
-point pdvdana::SingleHit::gen_zy(int size , std::vector<float> vZ , std::vector<float> vY , std::vector<float> vECol , std::vector<float> vPT, std::vector<float> vEInd1 , std::vector<float> vEInd2 , std::vector<int> vChCol , std::vector<int> vChInd1 , std::vector<int> vChInd2)
+point pdvdana::SingleHit::gen_zy(int size , std::vector<float> vZ , std::vector<float> vY , std::vector<float> vECol , std::vector<float> vPT, std::vector<float> vEInd1 , std::vector<float> vEInd2 , std::vector<int> vChCol , std::vector<int> vChInd1 , std::vector<int> vChInd2 , std::vector<std::vector<int>> vvMCPart_pdg , std::vector<std::vector<int>> vvMCPart_mom , std::vector<std::vector<std::string>> vvMCPart_prc)
 {
   int i = 0;
   point p, pt = (point) malloc(sizeof(point_t) * size);
@@ -1175,6 +1283,9 @@ point pdvdana::SingleHit::gen_zy(int size , std::vector<float> vZ , std::vector<
     p->ch_Ind1 = vChInd1[i];
     p->ch_Ind2 = vChInd2[i];
     p->PeakTime = vPT[i];
+    p->vMCPart_pdg = vvMCPart_pdg[i];
+    p->vMCPart_mom = vvMCPart_mom[i];
+    p->vMCPart_prc = vvMCPart_prc[i]
     i++;
   }
 
@@ -1507,19 +1618,18 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     float ECol     = vp->ECol;
     float PeakTime = vp->PeakTime;
 
-    //std::cout << " energy de colection hit " << k << " = " << ECol << std::endl;
+    std::vector<int> vMCPart_pdg = vp->vMCPart_pdg;
+    std::vector<int> vMCPart_mom = vp->vMCPart_mom;
+    std::vector<std::string> vMCPart_prc = vp->vMCPart_prc;
+
     if (ClusterID >=  n_cluster)
     {
-      //std::cout << " issue with cluster size " << std::endl;
-      //std::cout << ClusterID << std::endl;
       out++;
       continue;
     }
 
     if (ClusterID ==  -1)
     {
-      //std::cout << " issue with cluster size " << std::endl;
-      //std::cout << ClusterID << std::endl;
       out++;
       continue;
     }
@@ -1533,6 +1643,10 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
       vTempCluster[ClusterID].ECol += ECol;
       vTempCluster[ClusterID].PeakTime += PeakTime;
       vTempCluster[ClusterID].NCol += 1;
+      (vTempCluster[ClusterID].vvMCPDG).push_back( vMCPart_pdg );
+      (vTempCluster[ClusterID].vvMCMOM).push_back( vMCPart_mom );
+      (vTempCluster[ClusterID].vvMCPRC).push_back( vMCPart_prc );
+
       (vTempCluster[ClusterID].lChannelCol).push_back( ChannelCol );
     }
     if ( !Inside( ChannelInd1 , vTempCluster[ClusterID].lChannelInd1 ) )
@@ -1564,10 +1678,14 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     vCluster[j].NInd1  = vTempCluster[j].NInd1;
     vCluster[j].NInd2  = vTempCluster[j].NInd2;
 
-    vCluster[j].ECol  = vTempCluster[j].ECol;
-    vCluster[j].EInd1 = vTempCluster[j].EInd1;
-    vCluster[j].EInd2 = vTempCluster[j].EInd2;
+    vCluster[j].ECol     = vTempCluster[j].ECol;
+    vCluster[j].EInd1    = vTempCluster[j].EInd1;
+    vCluster[j].EInd2    = vTempCluster[j].EInd2;
     vCluster[j].PeakTime = vTempCluster[j].PeakTime/vTempCluster[j].NCol;
+
+    vCluster[j].vvMCPDG = vTempCluster[j].vvMCPDG;
+    vCluster[j].vvMCMOM = vTempCluster[j].vvMCMOM;
+    vCluster[j].vvMCPRC = vTempCluster[j].vvMCPRC;
 
   }
 
