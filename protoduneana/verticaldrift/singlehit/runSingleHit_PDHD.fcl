@@ -31,6 +31,10 @@ services:
 }
 
 services.Geometry.Name: "protodunehdv6"
+services.Geometry.GDLM: "protodunehd_v6_refactored.gdml"
+services.Geometry.ROOT: "protodunehd_v6_refactored.gdml"
+
+
 physics:
 {
   analyzers:
