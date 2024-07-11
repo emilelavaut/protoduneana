@@ -48,6 +48,7 @@ physics:
       ClusterLabel:      "pandora"
       TrackLabel:        "pandoroTrack"
       HitLabel:          "hitpdune"
+      G4Label:           "largeant"
 
       HitMultiplicity:      3
 

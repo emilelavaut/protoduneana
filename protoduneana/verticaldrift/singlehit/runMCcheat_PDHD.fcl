@@ -1,7 +1,8 @@
 #include "services_dune.fcl"
 #include "services_vdcoldbox.fcl" 
-
+#include "ProtoDUNECalibration.fcl"
 #include "tools_dune.fcl"	
+
 process_name: SingleHit
 
 source:
@@ -12,7 +13,7 @@ source:
 
 services:
 {
-  TFileService: { fileName: "singleHitOutput.root" }
+  TFileService: { fileName: "MCsingleHitOutput.root" }
   
   TimeTracker:                    @local::dune_time_tracker
   MemoryTracker:                  @local::dune_memory_tracker
@@ -26,33 +27,33 @@ services:
                                   @table::protodune_data_reco_services
   LArPropertiesService:           @local::dunefd_properties
   IFDH:                           {}
-
+  #CalibrationServices:            @local::CalorimetryParameters_SPProd4_MC_SCE
 }
-services.Geometry.Name: "protodunev7"
+
+services.Geometry.Name: "protodunehdv6"
+services.Geometry.GDLM: "protodunehd_v6_refactored.gdml"
+services.Geometry.ROOT: "protodunehd_v6_refactored.gdml"
+
 physics:
 {
   analyzers:
   {
     ana:
     {
-      module_type: "SingleHit"
+      module_type: "MCsingleHitCheater"
       LogLevel:     5
 
-      SpacePointLabel:   "reco3d"
-      ClusterLabel:      "pandora"
-      TrackLabel:        "pandoroTrack"
-      HitLabel:          "gaushit"
-      G4Label:           "largeant"
+      HitLabel:                   "hitpdune"
+      G4Label:                    "largeant"
+      GeneratorTag:               [ "cosmicgenerator" ,
+                                    "generator"       ,
+                                    "ar39"            ,
+                                    "kr85"            ,
+                                    "rn222"           
+                                  ]
 
-      ChannelWindowInt:     1
-      ChannelWindowExt:     2
-      HitMultiplicity:      3
-      PeakTimeWindowInt:    20
-      PeakTimeWindowExt:    20
-      CoincidenceWindow:    10
-      Pitch:                0.9 #in cm
-      PitchMultiplier:      1.2
-      tagPD:                1
+      HitLabel:          "hitpdune"
+
     }
   }
 
