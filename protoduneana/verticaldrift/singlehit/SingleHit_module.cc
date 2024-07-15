@@ -61,7 +61,7 @@ typedef struct
 
 typedef struct                                                                
 {                                                                                 
-  float Sumz , Sumy , SumECol , ECol , EInd1 , EInd2 , PeakTime;                  
+  float Sumz , Sumy , ECol , EInd1 , EInd2 , PeakTime;                  
   int Npoint, NCol , NInd1 , NInd2;
   std::list<int> lChannelCol , lChannelInd1 , lChannelInd2;
   std::vector<int> vMCPDG , vMCMOMpdg;
@@ -212,7 +212,7 @@ private:
   float fTimePlane1ToPlane2; 
   float fPitch;
   float fPitchMultiplier;
-  //int   fTagHDVD;  // commented out to make clang happy
+  int   fTagHDVD;
 
   float fNumberInitClusters;
   float fMaxSizeCluster;
@@ -536,6 +536,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
         sumMCEnergy += ide.energy;
       }
 
+      
       std::sort(tempMCPair.begin(), tempMCPair.end(), [](weightedMCPair a, weightedMCPair b){ return a.second > b.second;});
       
       for (weightedMCPair& p : tempMCPair ) 
@@ -546,7 +547,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 	vGenerator_tag.push_back( vTrackIDToGeneratorTag[(p.first)->TrackId()] );
 
 	vMCPart_x.push_back( (float) (p.first)->EndX() );
-        vMCPart_y.push_back( (float)(p.first)->EndY() );
+        vMCPart_y.push_back( (float) (p.first)->EndY() );
         vMCPart_z.push_back( (float) (p.first)->EndZ() );
 
         if ( (p.first)->Mother() == 0 )
@@ -557,9 +558,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
         const simb::MCParticle* curr_part_mom = pi_serv->TrackIdToParticle_P((p.first)->Mother());
         vMCPart_motherPdg.push_back( curr_part_mom->PdgCode() );
       }
-     
-      if( LogLevel > 2) print(vMCPart_z); 
-    }      
+      
+      
+      //if( LogLevel > 2) print(vMCPart_z); 
+    }// end if event != real data
     else
     {
       vMCPart_pdgCode.clear();
@@ -832,7 +834,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   std::cout << " THERE ARE " << PTSIsolated << " ISOLATED POINTS IN EVENT " << fEventID << std::endl;
   }
 
-  point v = gen_zy( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
+  point v = gen_zy( PTSIsolated , vIso , vZPointByEvent , vYPointByEvent );
 
   std::vector<std::vector<float> > dataPos = GetData(PTSIsolated,v);
   std::vector<std::vector<float> > clustersPos;
@@ -879,7 +881,9 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   point p;
   for (j = 0, p = v; j < PTSIsolated ; j++, p++)
   {
+    if( LogLevel > 4) std::cout << " REALOCATION ......";
     p->group = reallocate( p , clustersPos , threshold);
+    if( LogLevel > 4) std::cout << " ......DONE" << std::endl;
   }
 
   std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent , vMCXByEvent , vMCYByEvent , vMCZByEvent );
@@ -1776,7 +1780,29 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
 
   int k;
   point vp;
-  std::vector<TempCluster> vTempCluster(n_cluster);
+  TempCluster NullCluster;
+  NullCluster.Sumz = 0;
+  NullCluster.Sumy = 0;
+  NullCluster.Npoint = 0;
+  NullCluster.ECol = 0;
+  NullCluster.PeakTime = 0;
+  NullCluster.NCol = 0;
+  NullCluster.vMCPDG.clear();
+  NullCluster.vMCMOMpdg.clear();
+  NullCluster.vMCWEI.clear();
+  NullCluster.vMCGenTag.clear();
+  NullCluster.vMCX.clear();
+  NullCluster.vMCY.clear();
+  NullCluster.vMCZ.clear();
+  NullCluster.lChannelCol.clear();
+  NullCluster.lChannelInd1.clear();
+  NullCluster.EInd1 = 0;
+  NullCluster.NInd1 = 0;
+  NullCluster.lChannelInd2.clear();
+  NullCluster.EInd2 = 0;
+  NullCluster.NInd2= 0;
+    
+  std::vector<TempCluster> vTempCluster(n_cluster, NullCluster);
  
   int out = 0;
 
@@ -1785,29 +1811,6 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
 
     int index = vp->index;
     int ClusterID   = vp->group;
-
-    // initialize all Temp.Cluster variables to 0
-    vTempCluster[ClusterID].Sumz = 0;
-    vTempCluster[ClusterID].Sumy = 0;
-    vTempCluster[ClusterID].SumECol = 0;
-    vTempCluster[ClusterID].Npoint = 0;
-    vTempCluster[ClusterID].ECol = 0;
-    vTempCluster[ClusterID].PeakTime = 0;
-    vTempCluster[ClusterID].NCol = 0;
-    vTempCluster[ClusterID].vMCPDG.clear(); 
-    vTempCluster[ClusterID].vMCMOMpdg.clear(); 
-    vTempCluster[ClusterID].vMCWEI.clear(); 
-    vTempCluster[ClusterID].vMCGenTag.clear(); 
-    vTempCluster[ClusterID].vMCX.clear(); 
-    vTempCluster[ClusterID].vMCY.clear();
-    vTempCluster[ClusterID].vMCZ.clear();
-    vTempCluster[ClusterID].lChannelCol.clear();
-    vTempCluster[ClusterID].lChannelInd1.clear();
-    vTempCluster[ClusterID].EInd1 = 0;
-    vTempCluster[ClusterID].NInd1 = 0;
-    vTempCluster[ClusterID].lChannelInd2.clear();
-    vTempCluster[ClusterID].EInd2 = 0;
-    vTempCluster[ClusterID].NInd2= 0;
 
     int ChannelCol  = vChannelColByEvent[index];
     int ChannelInd1 = vChInd1PointByEvent[index];
@@ -1835,13 +1838,12 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
       out++;
       continue;
     }
-    vTempCluster[ClusterID].Sumz += ECol * ( vp->z );
-    vTempCluster[ClusterID].Sumy += ECol * ( vp->y );
-    vTempCluster[ClusterID].SumECol += ECol;
     vTempCluster[ClusterID].Npoint += 1;
 
     if ( !Inside( ChannelCol , vTempCluster[ClusterID].lChannelCol ) )
     {
+      vTempCluster[ClusterID].Sumz += ECol * ( vp->z );
+      vTempCluster[ClusterID].Sumy += ECol * ( vp->y );
       vTempCluster[ClusterID].ECol += ECol;
       vTempCluster[ClusterID].PeakTime += PeakTime;
       vTempCluster[ClusterID].NCol += 1;
@@ -1876,8 +1878,8 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
   for( int j = 0 ; j < n_cluster ; j++ )
   {
 
-    vCluster[j].z = ( vTempCluster[j].Sumz )/(vTempCluster[j].SumECol);
-    vCluster[j].y = ( vTempCluster[j].Sumy )/(vTempCluster[j].SumECol);
+    vCluster[j].z = ( vTempCluster[j].Sumz )/(vTempCluster[j].ECol);
+    vCluster[j].y = ( vTempCluster[j].Sumy )/(vTempCluster[j].ECol);
 
     vCluster[j].Npoint = vTempCluster[j].Npoint;
     vCluster[j].NCol   = vTempCluster[j].NCol;
