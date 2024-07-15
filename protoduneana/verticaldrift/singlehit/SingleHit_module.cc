@@ -55,11 +55,8 @@ using std::string;
 
 typedef struct 
 { 
-  float z, y; //, ECol, EInd1 ,EInd2 , PeakTime; 
-  int group, index; // ch_Col, ch_Ind1, ch_Ind2; 
-  //int MCPart_pdg,  MCPart_mompdg;
-  //float MCPart_weight;
-  //std::string MCPart_prc;
+  float z, y; 
+  int group, index;  
 } point_t, *point;
 
 typedef struct                                                                
@@ -69,6 +66,7 @@ typedef struct
   std::list<int> lChannelCol , lChannelInd1 , lChannelInd2;
   std::vector<int> vMCPDG , vMCMOMpdg;
   std::vector<float> vMCWEI;
+  std::vector<float> vMCX , vMCY , vMCZ;
   std::vector<std::string> vMCGenTag;
 } TempCluster ;                            
                               
@@ -78,6 +76,7 @@ typedef struct
   int Npoint, NCol , NInd1 , NInd2;
   std::vector<int> vMCPDG , vMCMOMpdg;
   std::vector<float> vMCWEI;
+  std::vector<float> vMCX , vMCY , vMCZ;
   std::vector<std::string> vMCGenTag;
 } Cluster ; 
 
@@ -168,8 +167,9 @@ private:
   std::vector<int> vMCPart_mother;
   std::vector<int> vMCPart_motherPdg;
   std::vector<std::string> vGenerator_tag;
-
-  //std::vector<std::string> vMCPart_process;
+  std::vector<float> vMCPart_y;
+  std::vector<float> vMCPart_x;
+  std::vector<float> vMCPart_z;
 
   // Cluster Tree Variables
   int NCluster;
@@ -190,7 +190,10 @@ private:
   std::vector<int>         vMCMOMpdgCluster;
   std::vector<int>         vMCPDGCluster;
   std::vector<float>       vMCWeightCluster;
-  
+  std::vector<float>       vMCXCluster;
+  std::vector<float>       vMCYCluster;
+  std::vector<float>       vMCZCluster;
+
   //Input variables
   std::string fSpacePointLabel;
   std::string fClusterLabel;
@@ -252,9 +255,14 @@ private:
   std::vector<int>         vMCMOMpdgByEvent;
   std::vector<int>         vMCPDGByEvent;
   std::vector<float>       vMCWeightByEvent;
+  std::vector<float>       vMCXByEvent;
+  std::vector<float>       vMCYByEvent;
+  std::vector<float>       vMCZByEvent;
+
   std::vector<std::string> vGeneratorTagByEvent;
 
   //function needed
+  void print(std::vector<float> v);
   void print( std::vector<std::vector<int>> vv );
 
   std::vector<std::string> GetGeneratorTag(  art::Event const& e , std::string fG4Label , int LogLevel , art::ServiceHandle<cheat::BackTrackerService> bt_serv );
@@ -315,7 +323,7 @@ private:
 
   std::vector<int> CheckClusters(std::vector<std::vector<float> > &data,std::vector<std::vector<float> > &cluster, float RMS , float mult , float tmp);
 
-  std::vector<Cluster> GetCluster( int n_point , int n_cluster , point p , std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent , std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent , std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent , std::vector<std::string> vGeneratorTagByEvent );
+  std::vector<Cluster> GetCluster( int n_point , int n_cluster , point p , std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent , std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent , std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent , std::vector<std::string> vGeneratorTagByEvent , std::vector<float> vMCXByEvent , std::vector<float> vMCYByEvent , std::vector<float> vMCZByEvent);
 
 };
 
@@ -387,6 +395,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
  
   if (fNHits == 0)
   {
+    if( LogLevel > 2) std::cout << " NO HIT IN EVENT " << fEventID << std::endl;
+
     fChannel        = -999;
     fPlane          = -999;
     fHitWidth       = -999;
@@ -450,8 +460,38 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCPart_weight.push_back(-999);
     vGenerator_tag.clear();
     vGenerator_tag.push_back("nothing");
+    vMCPart_x.clear();
+    vMCPart_x.push_back(-9999);
+    vMCPart_y.clear();
+    vMCPart_y.push_back(-9999);
+    vMCPart_z.clear();
+    vMCPart_z.push_back(-9999);
 
     tHitTree->Fill();
+
+    NCluster = 0;
+    vZCluster.push_back(-999);
+    vYCluster.push_back(-999);
+    vEColCluster.push_back(-999);
+    vEInd1Cluster.push_back(-999);
+    vEInd2Cluster.push_back(-999);
+    vPTCluster.push_back(-999);
+
+    vNPointCluster.push_back(-999);
+    vNColCluster.push_back(-999);
+    vNInd1Cluster.push_back(-999);
+    vNInd2Cluster.push_back(-999);
+
+    vMCPDGCluster.push_back( -999 );
+    vMCMOMpdgCluster.push_back( -999 );
+    vMCWeightCluster.push_back( -999 );
+    vMCGenTagCluster.push_back( "nothing" );
+    vMCXCluster.push_back(-9999);
+    vMCYCluster.push_back(-9999);
+    vMCZCluster.push_back(-9999);
+
+    tClusterTree->Fill();
+
     return;
   } 
 
@@ -480,6 +520,9 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       vMCPart_motherPdg.clear();
       vMCPart_weight.clear();
       vGenerator_tag.clear();
+      vMCPart_x.clear();
+      vMCPart_y.clear();
+      vMCPart_z.clear();
 
       float sumMCEnergy = 0 ;
 
@@ -490,17 +533,21 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       {
         const simb::MCParticle* curr_part = pi_serv->TrackIdToParticle_P(ide.trackID);
         tempMCPair.push_back(std::make_pair(curr_part,ide.energy));
-	sumMCEnergy += ide.energy;
+        sumMCEnergy += ide.energy;
       }
 
       std::sort(tempMCPair.begin(), tempMCPair.end(), [](weightedMCPair a, weightedMCPair b){ return a.second > b.second;});
-
+      
       for (weightedMCPair& p : tempMCPair ) 
       {   
         vMCPart_pdgCode.push_back( (p.first)->PdgCode()   );
         vMCPart_mother.push_back(  (p.first)->Mother()    );
         vMCPart_weight.push_back(  (p.second)/sumMCEnergy );
 	vGenerator_tag.push_back( vTrackIDToGeneratorTag[(p.first)->TrackId()] );
+
+	vMCPart_x.push_back( (float) (p.first)->EndX() );
+        vMCPart_y.push_back( (float)(p.first)->EndY() );
+        vMCPart_z.push_back( (float) (p.first)->EndZ() );
 
         if ( (p.first)->Mother() == 0 )
         {
@@ -510,7 +557,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
         const simb::MCParticle* curr_part_mom = pi_serv->TrackIdToParticle_P((p.first)->Mother());
         vMCPart_motherPdg.push_back( curr_part_mom->PdgCode() );
       }
-
+     
+      if( LogLevel > 2) print(vMCPart_z); 
     }      
     else
     {
@@ -524,6 +572,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       vMCPart_weight.push_back(-999);
       vGenerator_tag.clear();
       vGenerator_tag.push_back("data");
+      vMCPart_x.clear();
+      vMCPart_x.push_back(-9999);
+      vMCPart_y.clear();
+      vMCPart_y.push_back(-9999);
+      vMCPart_z.clear();
+      vMCPart_z.push_back(-9999);
+
     }
 
     fWire           = hit.WireID();
@@ -568,8 +623,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       ++fHitCounter;
 
       // Coincidence research
-      //GetListOfTimeCoincidenceHit( e, fHitLabel, fCoincidenceWd, fTimePlane1ToPlane2 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2);
-      GetListOfTimeCoincidenceHit( e, fHitLabel, 10 , 0 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2);
+      GetListOfTimeCoincidenceHit( e, fHitLabel, fCoincidenceWd, fTimePlane1ToPlane2 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2);
+      //GetListOfTimeCoincidenceHit( e, fHitLabel, 10 , 0 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2);
       fCoincidence = 0;
       if ( !lWireInd1.empty() || !lWireInd2.empty() ) fCoincidence += 1;
       if ( !lWireInd1.empty() && !lWireInd2.empty() ) fCoincidence += 1;
@@ -671,6 +726,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       vMCPDGByEvent.push_back( vMCPart_pdgCode[0] );
       vMCMOMpdgByEvent.push_back( vMCPart_motherPdg[0] );
       vMCWeightByEvent.push_back( vMCPart_weight[0] );
+      vMCXByEvent.push_back( vMCPart_x[0] );
+      vMCYByEvent.push_back( vMCPart_y[0] );
+      vMCZByEvent.push_back( vMCPart_z[0] );
+
       vGeneratorTagByEvent.push_back( vGenerator_tag[0] );
 
       z++;
@@ -680,6 +739,57 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       e2++;
 
     }
+
+    // setting hit variables values to initiale values
+    fChannel        = -999;
+    fPlane          = -999;
+    fHitWidth       = -999;
+    fHitNumber      = -999;
+    fCoincidence    = -999;
+    fTimeIsolation  = -999;
+    fAmbiguousHit   = 0;
+
+    fEnergy         = -999.;
+    fPeakTime       = -999.;
+    fSigmaPeakTime  = -999.;
+    fRMS            = -999.;
+    fAmplitude      = -999.;
+    fSigmaAmplitude = -999.;
+    fGoodnessOfFit  = -999.;
+    fIntegral       = -999.;
+    fSigmaIntegral  = -999.;
+
+    lSingleIndex.clear();
+    lIsolatedIndex.clear();
+
+    lWireInd1.clear();
+    lWireInd2.clear();
+    lChannelInd1.clear();
+    lChannelInd2.clear();
+    lEnergyInd1.clear();
+    lEnergyInd2.clear();
+    lPeakTimeInd1.clear();
+    lPeakTimeInd2.clear();
+    lYInd1.clear();
+    lZInd1.clear();
+    lYInd2.clear();
+    lZInd2.clear();
+    lChIntersectInd1.clear();
+    lChIntersectInd2.clear();
+    lYPoint.clear();
+    lZPoint.clear();
+    lEInd1Point.clear();
+    lEInd2Point.clear();
+    lChInd1Point.clear();
+    lChInd2Point.clear();
+    vMCPart_pdgCode.clear();
+    vMCPart_mother.clear();
+    vMCPart_motherPdg.clear();
+    vMCPart_weight.clear();
+    vMCPart_x.clear();
+    vMCPart_y.clear();
+    vMCPart_z.clear();
+
   }// end hit loop
 
   std::cout << "THERE IS " << fAmbiguousHit << " HIT(s) WITH AMBIGUOUS ORIGIN " << std::endl;
@@ -708,6 +818,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCMOMpdgCluster.push_back( -999 );
     vMCWeightCluster.push_back( -999 );
     vMCGenTagCluster.push_back( "nothing" ); 
+    vMCXCluster.push_back(-9999);
+    vMCYCluster.push_back(-9999);
+    vMCZCluster.push_back(-9999);
+
     tClusterTree->Fill();
     return;
   }
@@ -768,7 +882,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     p->group = reallocate( p , clustersPos , threshold);
   }
 
-  std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent );
+  std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent , vMCXByEvent , vMCYByEvent , vMCZByEvent );
   NCluster = vCluster.size();
 
   for( int j = 0 ; j < NCluster ; j++ )
@@ -789,6 +903,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCMOMpdgCluster.insert( vMCMOMpdgCluster.end() , (vCluster[j].vMCMOMpdg).begin() , (vCluster[j].vMCMOMpdg).end() );
     vMCPDGCluster.insert(    vMCPDGCluster.end()    , (vCluster[j].vMCPDG   ).begin() , (vCluster[j].vMCPDG   ).end() );
     vMCWeightCluster.insert( vMCWeightCluster.end() , (vCluster[j].vMCWEI   ).begin() , (vCluster[j].vMCWEI   ).end() );
+
+    vMCXCluster.insert( vMCXCluster.end() , (vCluster[j].vMCX).begin() , (vCluster[j].vMCX).end() );
+    vMCYCluster.insert( vMCYCluster.end() , (vCluster[j].vMCY).begin() , (vCluster[j].vMCY).end() );
+    vMCZCluster.insert( vMCZCluster.end() , (vCluster[j].vMCZ).begin() , (vCluster[j].vMCZ).end() );
 
     vMCGenTagCluster.insert( vMCGenTagCluster.end()    , (vCluster[j].vMCGenTag).begin() , (vCluster[j].vMCGenTag).end() );
   }
@@ -841,6 +959,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCPart_mother.clear();
   vMCPart_motherPdg.clear();
   vMCPart_weight.clear();
+  vMCPart_x.clear();
+  vMCPart_y.clear();
+  vMCPart_z.clear();
+
   //vMCPart_process.clear();
 
   NCluster = -999;
@@ -860,6 +982,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCMOMpdgCluster.clear();
   vMCMOMpdgCluster.clear();
   vMCWeightCluster.clear();
+  vMCGenTagCluster.clear();
+  vMCXCluster.clear();
+  vMCYCluster.clear();
+  vMCZCluster.clear();
 
   vYPointByEvent.clear();
   vZPointByEvent.clear();
@@ -877,6 +1003,11 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCMOMpdgByEvent.clear();
   vMCPDGByEvent.clear();
   vMCWeightByEvent.clear();
+  vGeneratorTagByEvent.clear();
+  vMCXByEvent.clear();
+  vMCYByEvent.clear();
+  vMCZByEvent.clear();
+
   // Implementation of required member function here.
 }
 
@@ -933,6 +1064,10 @@ void pdvdana::SingleHit::beginJob()
   tHitTree->Branch("vectorOFMCParticleMom"     , &vMCPart_mother    );
   tHitTree->Branch("vectorOFMCParticleMomPDG"  , &vMCPart_motherPdg );
   tHitTree->Branch("vectorOFMCParticleWeight"  , &vMCPart_weight    );
+  tHitTree->Branch("vectorOFMCParticleX"       , &vMCPart_x         );
+  tHitTree->Branch("vectorOFMCParticleY"       , &vMCPart_y         );
+  tHitTree->Branch("vectorOFMCParticleZ"       , &vMCPart_z         );
+
   tHitTree->Branch("vectorOFGeneratorTag"      , &vGenerator_tag    );
 
   //tHitTree->Branch("vectorOFMCParticlePrc"  , &vMCPart_process );
@@ -956,7 +1091,9 @@ void pdvdana::SingleHit::beginJob()
   tClusterTree->Branch("MCParticlePDG"      , &vMCPDGCluster );
   tClusterTree->Branch("MCParticleMOMPdg"   , &vMCMOMpdgCluster );
   tClusterTree->Branch("MCParticleWeight"   , &vMCWeightCluster );
-
+  tClusterTree->Branch("MCParticleX"        , &vMCXCluster    );
+  tClusterTree->Branch("MCParticleY"        , &vMCYCluster    );
+  tClusterTree->Branch("MCParticleZ"        , &vMCZCluster    );
   tClusterTree->Branch("HitGenerationTag"   , &vMCGenTagCluster );
 }
 
@@ -979,6 +1116,16 @@ void pdvdana::SingleHit::print(std::vector<std::vector<int>> vv )
     }
     std::cout << " ]" << std::endl;
   }
+}
+void pdvdana::SingleHit::print(std::vector<float> v )
+{
+  int size = v.size();
+  std::cout << "[ ";
+  for( int k = 0 ; k < size ; k++)
+  {
+    std::cout << v[k] << " , ";
+  }
+  std::cout << " ]" << std::endl;
 }
 
 float pdvdana::SingleHit::GetDist( float x0 , float y0 , float z0 , float x1 , float y1 , float z1 )
@@ -1624,18 +1771,43 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
 
 }
 
-std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster , point p , std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent , std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent , std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent , std::vector<std::string> vGeneratorTagByEvent )
+std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster , point p , std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent , std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent , std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent , std::vector<std::string> vGeneratorTagByEvent , std::vector<float> vMCXByEvent ,  std::vector<float> vMCYByEvent , std::vector<float> vMCZByEvent )
 {
 
   int k;
   point vp;
   std::vector<TempCluster> vTempCluster(n_cluster);
+ 
   int out = 0;
 
   for( k = 0 , vp=p ; k<n_point ; k++ , vp++)
   {
+
     int index = vp->index;
     int ClusterID   = vp->group;
+
+    // initialize all Temp.Cluster variables to 0
+    vTempCluster[ClusterID].Sumz = 0;
+    vTempCluster[ClusterID].Sumy = 0;
+    vTempCluster[ClusterID].SumECol = 0;
+    vTempCluster[ClusterID].Npoint = 0;
+    vTempCluster[ClusterID].ECol = 0;
+    vTempCluster[ClusterID].PeakTime = 0;
+    vTempCluster[ClusterID].NCol = 0;
+    vTempCluster[ClusterID].vMCPDG.clear(); 
+    vTempCluster[ClusterID].vMCMOMpdg.clear(); 
+    vTempCluster[ClusterID].vMCWEI.clear(); 
+    vTempCluster[ClusterID].vMCGenTag.clear(); 
+    vTempCluster[ClusterID].vMCX.clear(); 
+    vTempCluster[ClusterID].vMCY.clear();
+    vTempCluster[ClusterID].vMCZ.clear();
+    vTempCluster[ClusterID].lChannelCol.clear();
+    vTempCluster[ClusterID].lChannelInd1.clear();
+    vTempCluster[ClusterID].EInd1 = 0;
+    vTempCluster[ClusterID].NInd1 = 0;
+    vTempCluster[ClusterID].lChannelInd2.clear();
+    vTempCluster[ClusterID].EInd2 = 0;
+    vTempCluster[ClusterID].NInd2= 0;
 
     int ChannelCol  = vChannelColByEvent[index];
     int ChannelInd1 = vChInd1PointByEvent[index];
@@ -1646,6 +1818,10 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     int MCPart_pdg = vMCPDGByEvent[index];
     int MCPart_mompdg = vMCMOMpdgByEvent[index];
     float MCPart_weight = vMCWeightByEvent[index];
+    float MCPart_x = vMCXByEvent[index];
+    float MCPart_y = vMCYByEvent[index];
+    float MCPart_z = vMCZByEvent[index];
+
     std::string Generator_tag = vGeneratorTagByEvent[index];
 
     if (ClusterID >=  n_cluster)
@@ -1673,6 +1849,9 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
       (vTempCluster[ClusterID].vMCMOMpdg).push_back( MCPart_mompdg );
       (vTempCluster[ClusterID].vMCWEI).push_back( MCPart_weight );
       (vTempCluster[ClusterID].vMCGenTag).push_back( Generator_tag );
+      (vTempCluster[ClusterID].vMCX).push_back( MCPart_x );
+      (vTempCluster[ClusterID].vMCY).push_back( MCPart_y );
+      (vTempCluster[ClusterID].vMCZ).push_back( MCPart_z );
 
       (vTempCluster[ClusterID].lChannelCol).push_back( ChannelCol );
     }
@@ -1715,6 +1894,9 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     vCluster[j].vMCWEI = vTempCluster[j].vMCWEI;
     vCluster[j].vMCGenTag = vTempCluster[j].vMCGenTag;
 
+    vCluster[j].vMCX = vTempCluster[j].vMCX;
+    vCluster[j].vMCY = vTempCluster[j].vMCY;
+    vCluster[j].vMCZ = vTempCluster[j].vMCZ;
   }
 
   std::cout << "WE HAVE " << (float) out/n_point << " POINTS OUTSIDE OF CLUSTERS" << std::endl;
