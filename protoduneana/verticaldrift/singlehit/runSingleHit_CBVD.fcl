@@ -21,6 +21,7 @@
 #include "channelstatus_vdct.fcl"
 #include "vdcb_dataprep_sequences.fcl"
 #include "tools_dune.fcl"
+#include "SingleHitParameters.fcl" 
 
 process_name: SingleHit
 
@@ -48,38 +49,7 @@ physics:
 {
   analyzers:
   {
-    ana:
-    {
-      module_type: "SingleHit"
-      LogLevel:     5
-
-      SpacePointLabel:   "reco3d"
-      ClusterLabel:      "pandora"
-      TrackLabel:        "pandoroTrack"
-      HitLabel:          "gaushit"
-
-      G4Label:           "largeant"
-
-      HitMultiplicity:      3
-
-      RadiusInt:            3    # in cm
-      RadiusExt:            6    # in cm
-      ElectronVelocity:     0.16 # in cm/mus
-      TickTimeInMus:        0.4  # in mus/tt
-      CoincidenceWindow:    4    # in mus
-      TimePlane1ToPlane2:   2    # in mus
-      Pitch:                0.5  # in cm
-      PitchMultiplier:      1.2
-
-      #Cluster variables
-      NumberInitClusters:   1
-      MaxSizeCluster:       4    # in cm
-      MinSizeCluster:       0.5  # in cm
-      ClusterSizeMulti:     1.2
-      NumberConvStep:       200
-      Covering:             0.97
-      #tagPD:                1    # = 1 ->PDHD = 0 -> PDVD (for calib. factor)
-    }
+    ana:@Local::SingleHitParams
   }
 
   analysis: [ ana ]

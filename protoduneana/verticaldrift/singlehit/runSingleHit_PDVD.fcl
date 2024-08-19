@@ -1,7 +1,8 @@
 #include "services_dune.fcl"
 #include "services_vdcoldbox.fcl" 
-
 #include "tools_dune.fcl"	
+#include "SingleHitParameters.fcl"
+#
 process_name: SingleHit
 
 source:
@@ -31,49 +32,17 @@ services:
 }
 
 services.Geometry.Name: "protodunevd_v4"
-services.Geometry.GDLM: "protodunevd_v4_refactored.gdml"
+services.Geometry.GDML: "protodunevd_v4_refactored.gdml"
 services.Geometry.ROOT: "protodunevd_v4_refactored.gdml"
 
 physics:
 {
   analyzers:
   {
-    ana:
-    {
-      module_type: "SingleHit"
-      LogLevel:     5
-
-      SpacePointLabel:   "reco3d"
-      ClusterLabel:      "pandora"
-      TrackLabel:        "pandoroTrack"
-      HitLabel:          "hitpdune"
-      G4Label:           "largeant"
-
-      HitMultiplicity:      3
-
-      RadiusInt:            0.5    # in cm
-      RadiusExt:            10    # in cm
-      ElectronVelocity:     0.16 # in cm/mus
-      TickTimeInMus:        0.4  # in mus/tt
-      CoincidenceWindow:    9    # in mus
-      TimePlane1ToPlane2:   0    # in mus
-      Pitch:                0.5  # in cm
-      PitchMultiplier:      1.2
-
-      #Cluster variables
-      NumberInitClusters:   1
-      MaxSizeCluster:       1    # in cm
-      MinSizeCluster:       0.5  # in cm
-      ClusterSizeMulti:     1.2
-      NumberConvStep:       200
-      Covering:             0.97
-      #tagPD:                1    # = 1 ->PDHD = 0 -> PDVD (for calib. factor)
-
-      #Calibration:          CalibrationServices.PlaneParameters.calib_factor
-      #ChannelWindowInt:     1
-      #ChannelWindowExt:     2
-      #PeakTimeWindowInt:    20
-      #PeakTimeWindowExt:    2
-    }
+    ana:@Local::SingleHitParams
   }
+
+  analysis: [ ana ]
+  end_paths: [ analysis ]
+}
 

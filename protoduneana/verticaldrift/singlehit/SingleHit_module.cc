@@ -212,7 +212,7 @@ private:
   float fTimePlane1ToPlane2; 
   float fPitch;
   float fPitchMultiplier;
-  int   fTagHDVD;
+  //int   fTagHDVD;
 
   float fNumberInitClusters;
   float fMaxSizeCluster;
@@ -504,7 +504,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   float fPeakTimeWdInt = ( fRadiusInt / fElectronVelocity )/fTickTimeInMus;
   float fPeakTimeWdExt = ( fRadiusExt / fElectronVelocity )/fTickTimeInMus;
 
-  std::cout << "HIT BASED ANALYSIS --> Isolation, Spatialisation etc..." << std::endl;
+  if ( LogLevel > 2)  std::cout << "HIT BASED ANALYSIS --> Isolation, Spatialisation etc..." << std::endl;
 
   GetTimeIsolation( e, fHitLabel, fPeakTimeWdInt, fPeakTimeWdExt, lSingleIndex, lIsolatedIndex);
 
@@ -625,8 +625,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       ++fHitCounter;
 
       // Coincidence research
+
       GetListOfTimeCoincidenceHit( e, fHitLabel, fCoincidenceWd, fTimePlane1ToPlane2 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2);
       //GetListOfTimeCoincidenceHit( e, fHitLabel, 10 , 0 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2);
+
       fCoincidence = 0;
       if ( !lWireInd1.empty() || !lWireInd2.empty() ) fCoincidence += 1;
       if ( !lWireInd1.empty() && !lWireInd2.empty() ) fCoincidence += 1;
@@ -794,14 +796,14 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   }// end hit loop
 
-  std::cout << "THERE IS " << fAmbiguousHit << " HIT(s) WITH AMBIGUOUS ORIGIN " << std::endl;
+  if ( LogLevel > 4) std::cout << "THERE ARE " << fAmbiguousHit << " HIT(s) WITH AMBIGUOUS ORIGIN " << std::endl;
 
   std::vector<int> vIso = GetXYZIsolatedPoint( vYPointByEvent , vZPointByEvent , vPeakTimeColByEvent , fElectronVelocity , fTickTimeInMus , fRadiusInt , fRadiusExt );
   int PTSIsolated = (int) vIso.size();
 
   if (PTSIsolated == 0)
   {
-    std::cout << " THERE IS NO ISOLATED POINT IN EVENT " << fEventID << std::endl;
+    std::cout << "EXEPTION ERROR : THERE IS NO ISOLATED POINT IN EVENT " << fEventID << std::endl;
 
     NCluster = 0;
     vZCluster.push_back(-999);
@@ -828,7 +830,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     return;
   }
 
-  if( LogLevel > 2)
+  if( LogLevel > 5)
   {
   std::cout << " THERE ARE " << vYPointByEvent.size() << " POINTS IN EVENT " << fEventID << std::endl;
   std::cout << " THERE ARE " << PTSIsolated << " ISOLATED POINTS IN EVENT " << fEventID << std::endl;
@@ -860,20 +862,20 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       if (threshold < fMaxSizeCluster)
       {
         threshold *= fClusterSizeMulti;
-        printf("Threshold increased \n");
+        if ( LogLevel > 3) printf("Threshold increased \n");
         K = vchecks[1];
       }
       else
       {
         K = vchecks[1] + 1;
-        printf("Threshold Max reached \n");
+        if ( LogLevel > 2) printf("Threshold Max reached \n");
       }
     }
     else K = vchecks[1] + 5;
   }
 
-  printf("Data size : %lu x %lu \n",dataPos.size(),dataPos[0].size());
-  printf("Cluster size : %lu x %lu \n",clustersPos.size(),clustersPos[0].size());
+  if ( LogLevel > 2) printf("Data size : %lu x %lu \n",dataPos.size(),dataPos[0].size());
+  if ( LogLevel > 2) printf("Cluster size : %lu x %lu \n",clustersPos.size(),clustersPos[0].size());
 
   printf("Data clustering ended successfully \n");
 
@@ -1745,7 +1747,7 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
       cluster.push_back(newclusterZ);
       cluster.push_back(newclusterY);
 
-      printf("%lu clusters has been removed \n",Ncls-cluster[0].size());
+      if ( LogLevel > 3) printf("%lu clusters has been removed \n",Ncls-cluster[0].size());
 
     }
 
@@ -1754,7 +1756,7 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
     Nin2 = NComp[1];
     Nout = NComp[2];
 
-    printf("Counting : %.03f %.03f %.03f sum : %.02f \n",float(Nin)/float(Npts),float(Nin2)/float(Npts),float(Nout)/float(Npts),float(Nin+Nin2+Nout)/float(Npts));
+    if ( LogLevel > 3) printf("Counting : %.03f %.03f %.03f sum : %.02f \n",float(Nin)/float(Npts),float(Nin2)/float(Npts),float(Nout)/float(Npts),float(Nin+Nin2+Nout)/float(Npts));
 
     if(float(Nin+Nin2)/float(Npts) > tmp && float(Nin)/float(Npts) < tmp)
     {
@@ -1871,7 +1873,7 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     }
 
   }
-  std::cout << "temporary clusters done" << std::endl;
+  if ( LogLevel > 3) std::cout << "temporary clusters done" << std::endl;
 
   std::vector<Cluster> vCluster(n_cluster);
 
@@ -1901,7 +1903,7 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     vCluster[j].vMCZ = vTempCluster[j].vMCZ;
   }
 
-  std::cout << "WE HAVE " << (float) out/n_point << " POINTS OUTSIDE OF CLUSTERS" << std::endl;
+  if ( LogLevel > 2) std::cout << "WE HAVE " << (float) out/n_point << " POINTS OUTSIDE OF CLUSTERS" << std::endl;
   return vCluster;
 }
 
@@ -1934,7 +1936,7 @@ std::vector<std::string> pdvdana::SingleHit::GetGeneratorTag( art::Event const &
         vTrackIdToLabelPair.push_back(std::make_pair(track_id, sModuleLabel));
       }
 
-      if( LogLevel > 2) std::cout << "THERE ARE " << (int) mcParts.size() << " MCPARTICLES FROM GENERATOR " << sModuleLabel << std::endl;
+      if( LogLevel > 3) std::cout << "THERE ARE " << (int) mcParts.size() << " MCPARTICLES FROM GENERATOR " << sModuleLabel << std::endl;
 
     }// end for MCtruth
 
@@ -1953,7 +1955,7 @@ std::vector<std::string> pdvdana::SingleHit::GetGeneratorTag( art::Event const &
       }
       else
       {
-        std::cout << "ISSUE WITH ASSOCIATION " << vTrackIdToLabelPair[j].first << std::endl;
+        std::cout << "EXCEPTION ERROR : ISSUE WITH ASSOCIATION " << vTrackIdToLabelPair[j].first << std::endl;
         vGeneratorLabels[vTrackIdToLabelPair[j].first] = vTrackIdToLabelPair[j].second;
       }
 
