@@ -105,7 +105,6 @@ pdvdana::MCsingleHitCheater::MCsingleHitCheater(fhicl::ParameterSet const& p)
 {
   // Call appropriate consumes<>() for any products to be retrieved by this module.
   fGeom    = &*art::ServiceHandle<geo::Geometry>();
-  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
 }
 
 void pdvdana::MCsingleHitCheater::analyze(art::Event const& e)
