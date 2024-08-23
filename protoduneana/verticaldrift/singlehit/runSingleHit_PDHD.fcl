@@ -1,8 +1,10 @@
-#include "services_dune.fcl"
-#include "services_vdcoldbox.fcl" 
-#include "ProtoDUNECalibration.fcl"
-#include "tools_dune.fcl"
-#include "SingleHitParameters.fcl"	
+##with PROLOG
+#include "services_dune.fcl"       
+#include "ProtoDUNECalibration.fcl" 
+#include "SingleHitParameters.fcl" 	
+
+##without PROLOG
+#include "tools_dune.fcl"           
 
 process_name: SingleHit
 
@@ -40,10 +42,9 @@ physics:
 {
   analyzers:
   {
-    ana:@Local::SingleHitParams
+    ana:@local::SingleHitParams
   }
 
   analysis: [ ana ]
   end_paths: [ analysis ]
 }
-

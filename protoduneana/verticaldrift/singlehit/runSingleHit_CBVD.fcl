@@ -15,13 +15,12 @@
 #include "opticaldetectormodules_dune.fcl"
 #include "dataprep_dune.fcl"
 #include "SpacePointSolver_dune.fcl"
-
+#include "SingleHitParameters.fcl" 
 
 #include "channelstatus_vdcb.fcl"
 #include "channelstatus_vdct.fcl"
 #include "vdcb_dataprep_sequences.fcl"
 #include "tools_dune.fcl"
-#include "SingleHitParameters.fcl" 
 
 process_name: SingleHit
 

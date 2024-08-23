@@ -1,9 +1,9 @@
 #include "services_dune.fcl"
 #include "services_vdcoldbox.fcl" 
-
-#include "tools_dune.fcl"	
 #include "SingleHitParameters.fcl" 
-#
+
+#include "tools_dune.fcl" 
+
 process_name: SingleHit
 
 source:
