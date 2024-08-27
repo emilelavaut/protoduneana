@@ -261,6 +261,14 @@ private:
 
   std::vector<std::string> vGeneratorTagByEvent;
 
+  // veto track vector
+  std::vector<float> vVetoTrackStartZ;
+  std::vector<float> vVetoTrackStartY;
+  std::vector<float> vVetoTrackStartX;
+  std::vector<float> vVetoTrackEndZ;
+  std::vector<float> vVetoTrackEndY;
+  std::vector<float> vVetoTrackEndX;
+
   //function needed
   void print(std::vector<float> v);
   void print( std::vector<std::vector<int>> vv );
@@ -489,6 +497,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCXCluster.push_back(-9999);
     vMCYCluster.push_back(-9999);
     vMCZCluster.push_back(-9999);
+
+    vVetoTrackStartX.push_back(-9999.0);
+    vVetoTrackStartZ.push_back(-9999.0);
+    vVetoTrackStartY.push_back(-9999.0);
+    vVetoTrackEndX.push_back(-9999.0);
+    vVetoTrackEndZ.push_back(-9999.0);
+    vVetoTrackEndY.push_back(-9999.0);
 
     tClusterTree->Fill();
 
@@ -826,6 +841,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCYCluster.push_back(-9999);
     vMCZCluster.push_back(-9999);
 
+    vVetoTrackStartX.push_back(-9999.0);
+    vVetoTrackStartZ.push_back(-9999.0);
+    vVetoTrackStartY.push_back(-9999.0);
+    vVetoTrackEndX.push_back(-9999.0);
+    vVetoTrackEndZ.push_back(-9999.0);
+    vVetoTrackEndY.push_back(-9999.0);
+
     tClusterTree->Fill();
     return;
   }
@@ -916,6 +938,29 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
     vMCGenTagCluster.insert( vMCGenTagCluster.end()    , (vCluster[j].vMCGenTag).begin() , (vCluster[j].vMCGenTag).end() );
   }
+
+  // veto part
+
+  auto const tracklist = e.getValidHandle<vector<recob::Track>>(fTrackLabel);
+
+  vVetoTrackStartY.clear();
+  vVetoTrackStartX.clear();
+  vVetoTrackStartZ.clear();
+  vVetoTrackEndY.clear();
+  vVetoTrackEndX.clear();
+  vVetoTrackEndZ.clear();
+
+  for (unsigned itrk = 0; itrk < tracklist->size(); ++itrk) 
+  {
+    const recob::Track& track = tracklist->at(itrk);
+    vVetoTrackStartY.push_back( track.Start().Y() );
+    vVetoTrackStartZ.push_back( track.Start().Z() );
+    vVetoTrackStartX.push_back( track.Start().X() );
+    vVetoTrackEndY.push_back( track.End().Y() );
+    vVetoTrackEndZ.push_back( track.End().Z() );
+    vVetoTrackEndX.push_back( track.End().X() );
+  }
+
   tClusterTree->Fill();
    
 
@@ -1014,6 +1059,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCYByEvent.clear();
   vMCZByEvent.clear();
 
+  vVetoTrackStartY.clear();
+  vVetoTrackStartX.clear();
+  vVetoTrackStartZ.clear();
+  vVetoTrackEndY.clear();
+  vVetoTrackEndX.clear();
+  vVetoTrackEndZ.clear();
+
   // Implementation of required member function here.
 }
 
@@ -1082,25 +1134,32 @@ void pdvdana::SingleHit::beginJob()
   // CLUSTER TREE
   tClusterTree = tfs->make<TTree>("ClusterTree","ClusterTree");
 
-  tClusterTree->Branch("eventID"            , &fEventID       );
-  tClusterTree->Branch("NumberOfCluster"    , &NCluster       );
-  tClusterTree->Branch("Z"                  , &vZCluster      );
-  tClusterTree->Branch("Y"                  , &vYCluster      );
-  tClusterTree->Branch("EnergyCollection"   , &vEColCluster   );
-  tClusterTree->Branch("EnergyPlane0"       , &vEInd1Cluster  );
-  tClusterTree->Branch("EnergyPlane1"       , &vEInd2Cluster  );
-  tClusterTree->Branch("NumberOfPoint"      , &vNPointCluster );
-  tClusterTree->Branch("NumberOfCollection" , &vNColCluster   );
-  tClusterTree->Branch("NumberOfPlane0"     , &vNInd1Cluster  );
-  tClusterTree->Branch("NumberOfPlane1"     , &vNInd2Cluster  );
-  tClusterTree->Branch("PeakTime"           , &vPTCluster     );
-  tClusterTree->Branch("MCParticlePDG"      , &vMCPDGCluster );
+  tClusterTree->Branch("eventID"            , &fEventID         );
+  tClusterTree->Branch("NumberOfCluster"    , &NCluster         );
+  tClusterTree->Branch("Z"                  , &vZCluster        );
+  tClusterTree->Branch("Y"                  , &vYCluster        );
+  tClusterTree->Branch("EnergyCollection"   , &vEColCluster     );
+  tClusterTree->Branch("EnergyPlane0"       , &vEInd1Cluster    );
+  tClusterTree->Branch("EnergyPlane1"       , &vEInd2Cluster    );
+  tClusterTree->Branch("NumberOfPoint"      , &vNPointCluster   );
+  tClusterTree->Branch("NumberOfCollection" , &vNColCluster     );
+  tClusterTree->Branch("NumberOfPlane0"     , &vNInd1Cluster    );
+  tClusterTree->Branch("NumberOfPlane1"     , &vNInd2Cluster    );
+  tClusterTree->Branch("PeakTime"           , &vPTCluster       );
+  tClusterTree->Branch("MCParticlePDG"      , &vMCPDGCluster    );
   tClusterTree->Branch("MCParticleMOMPdg"   , &vMCMOMpdgCluster );
   tClusterTree->Branch("MCParticleWeight"   , &vMCWeightCluster );
-  tClusterTree->Branch("MCParticleX"        , &vMCXCluster    );
-  tClusterTree->Branch("MCParticleY"        , &vMCYCluster    );
-  tClusterTree->Branch("MCParticleZ"        , &vMCZCluster    );
+  tClusterTree->Branch("MCParticleX"        , &vMCXCluster      );
+  tClusterTree->Branch("MCParticleY"        , &vMCYCluster      );
+  tClusterTree->Branch("MCParticleZ"        , &vMCZCluster      );
   tClusterTree->Branch("HitGenerationTag"   , &vMCGenTagCluster );
+
+  tClusterTree->Branch("VetoTrackStartZ"    , &vVetoTrackStartZ );
+  tClusterTree->Branch("VetoTrackStartY"    , &vVetoTrackStartY );
+  tClusterTree->Branch("VetoTrackStartX"    , &vVetoTrackStartX );
+  tClusterTree->Branch("VetoTrackEndZ"    , &vVetoTrackEndZ );
+  tClusterTree->Branch("VetoTrackEndY"    , &vVetoTrackEndY );
+  tClusterTree->Branch("VetoTrackEndX"    , &vVetoTrackEndX );
 }
 
 

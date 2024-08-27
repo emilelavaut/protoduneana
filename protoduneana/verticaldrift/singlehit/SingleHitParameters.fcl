@@ -7,7 +7,7 @@ SingleHitParams:
 
   SpacePointLabel:   "reco3d"
   ClusterLabel:      "pandora"
-  TrackLabel:        "pandoroTrack"
+  TrackLabel:        "pandoraTrack"
   HitLabel:          "hitpdune"
   G4Label:           "largeant"
 
