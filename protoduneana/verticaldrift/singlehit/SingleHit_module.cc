@@ -55,13 +55,13 @@ using std::string;
 
 typedef struct 
 { 
-  float z, y; 
+  float y, z; 
   int group, index;  
 } point_t, *point;
 
 typedef struct                                                                
 {                                                                                 
-  float Sumz , Sumy , ECol , EInd1 , EInd2 , PeakTime;                  
+  float Sumy , Sumz , ECol , EInd1 , EInd2 , PeakTime;                  
   int Npoint, NCol , NInd1 , NInd2;
   std::list<int> lChannelCol , lChannelInd1 , lChannelInd2;
   std::vector<int> vMCPDG , vMCMOMpdg;
@@ -72,7 +72,7 @@ typedef struct
                               
 typedef struct
 { 
-  float z , y , ECol , EInd1 , EInd2 , PeakTime;
+  float y , z , ECol , EInd1 , EInd2 , PeakTime;
   int Npoint, NCol , NInd1 , NInd2;
   std::vector<int> vMCPDG , vMCMOMpdg;
   std::vector<float> vMCWEI;
@@ -162,14 +162,14 @@ private:
   std::list<int>   lChInd1Point;
   std::list<int>   lChInd2Point;
 
-  std::vector<int> vMCPart_pdgCode;
-  std::vector<float> vMCPart_weight;
-  std::vector<int> vMCPart_mother;
-  std::vector<int> vMCPart_motherPdg;
+  std::vector<int>         vMCPart_pdgCode;
+  std::vector<float>       vMCPart_weight;
+  std::vector<int>         vMCPart_mother;
+  std::vector<int>         vMCPart_motherPdg;
   std::vector<std::string> vGenerator_tag;
-  std::vector<float> vMCPart_y;
-  std::vector<float> vMCPart_x;
-  std::vector<float> vMCPart_z;
+  std::vector<float>       vMCPart_x;
+  std::vector<float>       vMCPart_y;
+  std::vector<float>       vMCPart_z;
 
   // Cluster Tree Variables
   int NCluster;
@@ -201,8 +201,8 @@ private:
   std::string fHitLabel;
   std::string fG4Label;
 
-  int LogLevel;
-  int fMultiplicity;
+  int   LogLevel;
+  int   fMultiplicity;
   float fTickTimeInMus;
 
   float fRadiusInt;
@@ -212,7 +212,6 @@ private:
   float fTimePlane1ToPlane2; 
   float fPitch;
   float fPitchMultiplier;
-  //int   fTagHDVD;
 
   float fNumberInitClusters;
   float fMaxSizeCluster;
@@ -228,9 +227,6 @@ private:
 
   // working variables
  
-  //std::vector<int>   vNo = {-999};
-  //std::vector<float> vFo = {-999.};
-
   int fHitCounter = 0;
   int fNHits      = 0;
   int fAmbiguousHit = 0;
@@ -251,7 +247,6 @@ private:
   std::vector<int>   vChInd1PointByEvent;
   std::vector<int>   vChInd2PointByEvent;
 
-  //std::vector<std::string> vMCPRCByEvent;
   std::vector<int>         vMCMOMpdgByEvent;
   std::vector<int>         vMCPDGByEvent;
   std::vector<float>       vMCWeightByEvent;
@@ -262,12 +257,12 @@ private:
   std::vector<std::string> vGeneratorTagByEvent;
 
   // veto track vector
-  std::vector<float> vVetoTrackStartZ;
-  std::vector<float> vVetoTrackStartY;
   std::vector<float> vVetoTrackStartX;
-  std::vector<float> vVetoTrackEndZ;
-  std::vector<float> vVetoTrackEndY;
+  std::vector<float> vVetoTrackStartY;
+  std::vector<float> vVetoTrackStartZ;
   std::vector<float> vVetoTrackEndX;
+  std::vector<float> vVetoTrackEndY;
+  std::vector<float> vVetoTrackEndZ;
 
   //function needed
   void print(std::vector<float> v);
@@ -307,7 +302,7 @@ private:
   std::vector<int> GetXYZIsolatedPoint( std::vector<float> vYPoint , std::vector<float> vZPoint , std::vector<float> vPeakTimeCol ,
                                                           float fElectronVelocity , float fTickToMus , float radiusInt , float radiusExt );
   // CLUSTER FUNCTIONS
-  point gen_zy(int size , std::vector<int> vIndex , std::vector<float> vZ , std::vector<float> vY );
+  point gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ );
   
   float dist2(point a, point b);
 
@@ -317,9 +312,9 @@ private:
 
   int reallocate(point pt, std::vector<std::vector<float>> ClusterPosition , float threshold);
 
-  float GetDist2D(float z0,float y0,float z1,float y1);
+  float GetDist2D(float y0,float z0,float y1,float z1);
 
-  float mean(float z,float y);
+  float mean(float y,float z);
  
   void kpp(point pts, int len, point cent, int n_cent);
 
@@ -499,11 +494,11 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCZCluster.push_back(-9999);
 
     vVetoTrackStartX.push_back(-9999.0);
-    vVetoTrackStartZ.push_back(-9999.0);
     vVetoTrackStartY.push_back(-9999.0);
+    vVetoTrackStartZ.push_back(-9999.0);
     vVetoTrackEndX.push_back(-9999.0);
-    vVetoTrackEndZ.push_back(-9999.0);
     vVetoTrackEndY.push_back(-9999.0);
+    vVetoTrackEndZ.push_back(-9999.0);
 
     tClusterTree->Fill();
 
@@ -858,7 +853,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   std::cout << " THERE ARE " << PTSIsolated << " ISOLATED POINTS IN EVENT " << fEventID << std::endl;
   }
 
-  point v = gen_zy( PTSIsolated , vIso , vZPointByEvent , vYPointByEvent );
+  point v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
 
   std::vector<std::vector<float> > dataPos = GetData(PTSIsolated,v);
   std::vector<std::vector<float> > clustersPos;
@@ -916,8 +911,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   for( int j = 0 ; j < NCluster ; j++ )
   {
     // Filling tree variables
-    vZCluster.push_back(vCluster[j].z);
     vYCluster.push_back(vCluster[j].y);
+    vZCluster.push_back(vCluster[j].z);
     vEColCluster.push_back(vCluster[j].ECol);
     vEInd1Cluster.push_back(vCluster[j].EInd1);
     vEInd2Cluster.push_back(vCluster[j].EInd2);
@@ -943,22 +938,22 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   auto const tracklist = e.getValidHandle<vector<recob::Track>>(fTrackLabel);
 
-  vVetoTrackStartY.clear();
   vVetoTrackStartX.clear();
+  vVetoTrackStartY.clear();
   vVetoTrackStartZ.clear();
-  vVetoTrackEndY.clear();
   vVetoTrackEndX.clear();
+  vVetoTrackEndY.clear();
   vVetoTrackEndZ.clear();
 
   for (unsigned itrk = 0; itrk < tracklist->size(); ++itrk) 
   {
     const recob::Track& track = tracklist->at(itrk);
+    vVetoTrackStartX.push_back( track.Start().X() );
     vVetoTrackStartY.push_back( track.Start().Y() );
     vVetoTrackStartZ.push_back( track.Start().Z() );
-    vVetoTrackStartX.push_back( track.Start().X() );
+    vVetoTrackEndX.push_back( track.End().X() );
     vVetoTrackEndY.push_back( track.End().Y() );
     vVetoTrackEndZ.push_back( track.End().Z() );
-    vVetoTrackEndX.push_back( track.End().X() );
   }
 
   tClusterTree->Fill();
@@ -1014,12 +1009,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCPart_y.clear();
   vMCPart_z.clear();
 
-  //vMCPart_process.clear();
-
   NCluster = -999;
 
-  vZCluster.clear();
   vYCluster.clear();
+  vZCluster.clear();
   vEColCluster.clear();
   vEInd1Cluster.clear();
   vEInd2Cluster.clear();
@@ -1059,11 +1052,11 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCYByEvent.clear();
   vMCZByEvent.clear();
 
-  vVetoTrackStartY.clear();
   vVetoTrackStartX.clear();
+  vVetoTrackStartY.clear();
   vVetoTrackStartZ.clear();
-  vVetoTrackEndY.clear();
   vVetoTrackEndX.clear();
+  vVetoTrackEndY.clear();
   vVetoTrackEndZ.clear();
 
   // Implementation of required member function here.
@@ -1154,12 +1147,12 @@ void pdvdana::SingleHit::beginJob()
   tClusterTree->Branch("MCParticleZ"        , &vMCZCluster      );
   tClusterTree->Branch("HitGenerationTag"   , &vMCGenTagCluster );
 
-  tClusterTree->Branch("VetoTrackStartZ"    , &vVetoTrackStartZ );
-  tClusterTree->Branch("VetoTrackStartY"    , &vVetoTrackStartY );
   tClusterTree->Branch("VetoTrackStartX"    , &vVetoTrackStartX );
-  tClusterTree->Branch("VetoTrackEndZ"    , &vVetoTrackEndZ );
-  tClusterTree->Branch("VetoTrackEndY"    , &vVetoTrackEndY );
-  tClusterTree->Branch("VetoTrackEndX"    , &vVetoTrackEndX );
+  tClusterTree->Branch("VetoTrackStartY"    , &vVetoTrackStartY );
+  tClusterTree->Branch("VetoTrackStartZ"    , &vVetoTrackStartZ );
+  tClusterTree->Branch("VetoTrackEndX"      , &vVetoTrackEndX   );
+  tClusterTree->Branch("VetoTrackEndY"      , &vVetoTrackEndY   );
+  tClusterTree->Branch("VetoTrackEndZ"      , &vVetoTrackEndZ   );
 }
 
 
@@ -1510,7 +1503,7 @@ float pdvdana::SingleHit::randf(float m)
     return m * rand() / (RAND_MAX - 1.);
 }
 
-point pdvdana::SingleHit::gen_zy(int size , std::vector<int> vIndex , std::vector<float> vZ , std::vector<float> vY )
+point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ )
 {
   int i = 0;
   point p, pt = (point) malloc(sizeof(point_t) * size);
@@ -1570,13 +1563,13 @@ int pdvdana::SingleHit::reallocate(point pt, std::vector<std::vector<float>> Clu
 }
 
 
-float pdvdana::SingleHit::GetDist2D(float z0,float y0,float z1,float y1){
+float pdvdana::SingleHit::GetDist2D(float y0,float z0,float y1,float z1){
     float z = z0-z1;
     float y = y0-y1;
     return z*z+y*y;
 }
 
-float pdvdana::SingleHit::mean(float z,float y){
+float pdvdana::SingleHit::mean(float y,float z){
     return (z+y)/2.;
 }
 
@@ -1643,7 +1636,7 @@ std::vector<std::vector<float>> pdvdana::SingleHit::lloyd(point pts, int len, in
     for_n { c->group = i; }
 
     std::vector<std::vector<float> > clusterPos;
-    std::vector<float> clusterPosZ,clusterPosY;
+    std::vector<float> clusterPosY,clusterPosZ;
 
     point result;
 
