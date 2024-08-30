@@ -167,9 +167,12 @@ private:
   std::vector<int>         vMCPart_mother;
   std::vector<int>         vMCPart_motherPdg;
   std::vector<std::string> vGenerator_tag;
-  std::vector<float>       vMCPart_x;
-  std::vector<float>       vMCPart_y;
-  std::vector<float>       vMCPart_z;
+  std::vector<float>       vMCPart_Endx;
+  std::vector<float>       vMCPart_Endy;
+  std::vector<float>       vMCPart_Endz;
+  std::vector<float>       vMCPart_Startx;
+  std::vector<float>       vMCPart_Starty;
+  std::vector<float>       vMCPart_Startz;
 
   // Cluster Tree Variables
   int NCluster;
@@ -463,12 +466,18 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCPart_weight.push_back(-999);
     vGenerator_tag.clear();
     vGenerator_tag.push_back("nothing");
-    vMCPart_x.clear();
-    vMCPart_x.push_back(-9999);
-    vMCPart_y.clear();
-    vMCPart_y.push_back(-9999);
-    vMCPart_z.clear();
-    vMCPart_z.push_back(-9999);
+    vMCPart_Endx.clear();
+    vMCPart_Endx.push_back(-9999);
+    vMCPart_Endy.clear();
+    vMCPart_Endy.push_back(-9999);
+    vMCPart_Endz.clear();
+    vMCPart_Endz.push_back(-9999);
+    vMCPart_Startx.clear();
+    vMCPart_Startx.push_back(-9999);
+    vMCPart_Starty.clear();
+    vMCPart_Starty.push_back(-9999);
+    vMCPart_Startz.clear();
+    vMCPart_Startz.push_back(-9999);
 
     tHitTree->Fill();
 
@@ -530,9 +539,12 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       vMCPart_motherPdg.clear();
       vMCPart_weight.clear();
       vGenerator_tag.clear();
-      vMCPart_x.clear();
-      vMCPart_y.clear();
-      vMCPart_z.clear();
+      vMCPart_Endx.clear();
+      vMCPart_Endy.clear();
+      vMCPart_Endz.clear();
+      vMCPart_Startx.clear();
+      vMCPart_Starty.clear();
+      vMCPart_Startz.clear();
 
       float sumMCEnergy = 0 ;
 
@@ -556,9 +568,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
         vMCPart_weight.push_back(  (p.second)/sumMCEnergy );
 	vGenerator_tag.push_back( vTrackIDToGeneratorTag[(p.first)->TrackId()] );
 
-	vMCPart_x.push_back( (float) (p.first)->EndX() );
-        vMCPart_y.push_back( (float) (p.first)->EndY() );
-        vMCPart_z.push_back( (float) (p.first)->EndZ() );
+	vMCPart_Endx.push_back( (float) (p.first)->EndX() );
+        vMCPart_Endy.push_back( (float) (p.first)->EndY() );
+        vMCPart_Endz.push_back( (float) (p.first)->EndZ() );
+
+	vMCPart_Startx.push_back( (float) (p.first)->Vx(0) );
+	vMCPart_Starty.push_back( (float) (p.first)->Vy(0) );
+	vMCPart_Startz.push_back( (float) (p.first)->Vz(0) );
 
         if ( (p.first)->Mother() == 0 )
         {
@@ -570,7 +586,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       }
       
       
-      //if( LogLevel > 2) print(vMCPart_z); 
+      //if( LogLevel > 2) print(vMCPart_Endz); 
     }// end if event != real data
     else
     {
@@ -584,13 +600,18 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       vMCPart_weight.push_back(-999);
       vGenerator_tag.clear();
       vGenerator_tag.push_back("data");
-      vMCPart_x.clear();
-      vMCPart_x.push_back(-9999);
-      vMCPart_y.clear();
-      vMCPart_y.push_back(-9999);
-      vMCPart_z.clear();
-      vMCPart_z.push_back(-9999);
-
+      vMCPart_Endx.clear();
+      vMCPart_Endx.push_back(-9999);
+      vMCPart_Endy.clear();
+      vMCPart_Endy.push_back(-9999);
+      vMCPart_Endz.clear();
+      vMCPart_Endz.push_back(-9999);
+      vMCPart_Startx.clear();
+      vMCPart_Startx.push_back(-9999);
+      vMCPart_Starty.clear();
+      vMCPart_Starty.push_back(-9999);
+      vMCPart_Startz.clear();
+      vMCPart_Startz.push_back(-9999);
     }
 
     fWire           = hit.WireID();
@@ -740,9 +761,9 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       vMCPDGByEvent.push_back( vMCPart_pdgCode[0] );
       vMCMOMpdgByEvent.push_back( vMCPart_motherPdg[0] );
       vMCWeightByEvent.push_back( vMCPart_weight[0] );
-      vMCXByEvent.push_back( vMCPart_x[0] );
-      vMCYByEvent.push_back( vMCPart_y[0] );
-      vMCZByEvent.push_back( vMCPart_z[0] );
+      vMCXByEvent.push_back( vMCPart_Endx[0] );
+      vMCYByEvent.push_back( vMCPart_Endy[0] );
+      vMCZByEvent.push_back( vMCPart_Endz[0] );
 
       vGeneratorTagByEvent.push_back( vGenerator_tag[0] );
 
@@ -800,9 +821,12 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCPart_mother.clear();
     vMCPart_motherPdg.clear();
     vMCPart_weight.clear();
-    vMCPart_x.clear();
-    vMCPart_y.clear();
-    vMCPart_z.clear();
+    vMCPart_Endx.clear();
+    vMCPart_Endy.clear();
+    vMCPart_Endz.clear();
+    vMCPart_Startx.clear();
+    vMCPart_Starty.clear();
+    vMCPart_Startz.clear();
 
   }// end hit loop
 
@@ -1005,9 +1029,12 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCPart_mother.clear();
   vMCPart_motherPdg.clear();
   vMCPart_weight.clear();
-  vMCPart_x.clear();
-  vMCPart_y.clear();
-  vMCPart_z.clear();
+  vMCPart_Endx.clear();
+  vMCPart_Endy.clear();
+  vMCPart_Endz.clear();
+  vMCPart_Startx.clear();
+  vMCPart_Starty.clear();
+  vMCPart_Startz.clear();
 
   NCluster = -999;
 
@@ -1115,10 +1142,12 @@ void pdvdana::SingleHit::beginJob()
   tHitTree->Branch("vectorOFMCParticleMom"     , &vMCPart_mother    );
   tHitTree->Branch("vectorOFMCParticleMomPDG"  , &vMCPart_motherPdg );
   tHitTree->Branch("vectorOFMCParticleWeight"  , &vMCPart_weight    );
-  tHitTree->Branch("vectorOFMCParticleX"       , &vMCPart_x         );
-  tHitTree->Branch("vectorOFMCParticleY"       , &vMCPart_y         );
-  tHitTree->Branch("vectorOFMCParticleZ"       , &vMCPart_z         );
-
+  tHitTree->Branch("vectorOFMCParticleEX"      , &vMCPart_Endx      );
+  tHitTree->Branch("vectorOFMCParticleEY"      , &vMCPart_Endy      );
+  tHitTree->Branch("vectorOFMCParticleEZ"      , &vMCPart_Endz      );
+  tHitTree->Branch("vectorOFMCParticleSX"      , &vMCPart_Startx    );
+  tHitTree->Branch("vectorOFMCParticleSY"      , &vMCPart_Starty    );
+  tHitTree->Branch("vectorOFMCParticleSZ"      , &vMCPart_Startz    );
   tHitTree->Branch("vectorOFGeneratorTag"      , &vGenerator_tag    );
 
   //tHitTree->Branch("vectorOFMCParticlePrc"  , &vMCPart_process );
