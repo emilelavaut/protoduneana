@@ -837,7 +837,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   if (PTSIsolated == 0)
   {
-    std::cout << "EXEPTION ERROR : THERE IS NO ISOLATED POINT IN EVENT " << fEventID << std::endl;
+    if ( LogLevel > 0) std::cout << "EXEPTION ERROR : THERE IS NO ISOLATED POINT IN EVENT " << fEventID << std::endl;
 
     NCluster = 0;
     vZCluster.push_back(-999);
@@ -891,7 +891,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   for( int i = 0 ; i < fNumberConvStep ; i++ )
   {
-    printf("%d %d %d ",i,K,check);
+    if ( LogLevel > 0) printf("%d %d %d ",i,K,check);
 
     clustersPos = lloyd(v, PTSIsolated, K);
     vchecks = CheckClusters( dataPos , clustersPos , threshold , fClusterSizeMulti, fCovering);
@@ -918,7 +918,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   if ( LogLevel > 2) printf("Data size : %lu x %lu \n",dataPos.size(),dataPos[0].size());
   if ( LogLevel > 2) printf("Cluster size : %lu x %lu \n",clustersPos.size(),clustersPos[0].size());
 
-  printf("Data clustering ended successfully \n");
+  if ( LogLevel > 0) printf("Data clustering ended successfully \n");
 
   int j = 0;
   point p;
@@ -1752,7 +1752,7 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
 
     //std::cout<< " Nin " << Nin << " Nin2 " << Nin2 << " Nout " << Nout << " Npst " << Npts << " Ncls " << Ncls << std::endl;
 
-    printf("Counting : %.03f %.03f %.03f sum : %.02f \n",float(Nin)/float(Npts),float(Nin2)/float(Npts),float(Nout)/float(Npts),float(Nin+Nin2+Nout)/float(Npts));
+    if ( LogLevel > 0) printf("Counting : %.03f %.03f %.03f sum : %.02f \n",float(Nin)/float(Npts),float(Nin2)/float(Npts),float(Nout)/float(Npts),float(Nin+Nin2+Nout)/float(Npts));
 
 
     if(float(Nin+Nin2)/float(Npts) > tmp && float(Nin)/float(Npts) < tmp)
@@ -2036,7 +2036,7 @@ std::vector<std::string> pdvdana::SingleHit::GetGeneratorTag( art::Event const &
       }
       else
       {
-        std::cout << "EXCEPTION ERROR : ISSUE WITH ASSOCIATION " << vTrackIdToLabelPair[j].first << std::endl;
+        if ( LogLevel > 0) std::cout << "EXCEPTION ERROR : ISSUE WITH ASSOCIATION " << vTrackIdToLabelPair[j].first << std::endl;
         vGeneratorLabels[vTrackIdToLabelPair[j].first] = vTrackIdToLabelPair[j].second;
       }
 
