@@ -21,6 +21,7 @@ SingleHitParams:
   TimePlane1ToPlane2:   4    # in mus
   Pitch:                0.5  # in cm
   PitchMultiplier:      1.2
+  3ViewsCoincidence:    false #if false then only 2 views coincidence is imposed
 
   #Cluster variables
   NumberInitClusters:   1
