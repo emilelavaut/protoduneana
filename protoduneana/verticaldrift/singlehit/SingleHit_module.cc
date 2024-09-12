@@ -215,6 +215,7 @@ private:
   float fTimePlane1ToPlane2; 
   float fPitch;
   float fPitchMultiplier;
+  bool  bIs3ViewsCoincidence;
 
   float fNumberInitClusters;
   float fMaxSizeCluster;
@@ -353,6 +354,7 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
 
     fPitch(p.get<float>("Pitch")),
     fPitchMultiplier(p.get<float>("PitchMultiplier")),    
+    bIs3ViewsCoincidence(p.get<bool>("3ViewsCoincidence")),
 
     fNumberInitClusters(p.get<int>("NumberInitClusters")),
     fMaxSizeCluster(p.get<float>("MaxSizeCluster")),
@@ -667,7 +669,28 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       if ( fCoincidence > 0 )
       {
         GetListOfCrossingChannel( fWire , lWireInd1 , lWireInd2 , lChannelInd1 , lYInd1 , lZInd1 , lChIntersectInd1 , lChannelInd2 , lYInd2 , lZInd2 , lChIntersectInd2 ); 
-        GetListOf3ViewsPoint( fPitch , fPitchMultiplier , lChIntersectInd1 , lYInd1 , lZInd1 , lEnergyInd1 , lChIntersectInd2 , lYInd2 , lZInd2 , lEnergyInd2 , lYPoint , lZPoint , lEInd1Point , lEInd2Point , lChInd1Point , lChInd2Point);
+        if ( Is3ViewsCoincidence ) GetListOf3ViewsPoint( fPitch , fPitchMultiplier , lChIntersectInd1 , lYInd1 , lZInd1 , lEnergyInd1 , lChIntersectInd2 , lYInd2 , lZInd2 , lEnergyInd2 , lYPoint , lZPoint , lEInd1Point , lEInd2Point , lChInd1Point , lChInd2Point);
+	else
+	{
+	  //induction 1
+	  lYPoint.insert( lYPoint.end() , lYInd1.begin() , lYInd1.end() );
+	  lYPoint.insert( lZPoint.end() , lZInd1.begin() , lZInd1.end() );
+	  lEInd1Point.insert( lEInd1Point.end() , lEnergyInd1.begin() , lEnergyInd1.end() );
+	  lChInd1Point.insert( lChInd1Point.end() , lChIntersectInd1.begin() , lChIntersectInd1.end() );
+	  int N1 = lYInd1.size();
+	  lEInd2Point.insert( lEInd2Point.end() , N1 , 0 );
+	  lChInd2Point.insert( lChInd2Point.end() , N1 , -1 );
+
+	  //induction 1
+	  lYPoint.insert( lYPoint.end() , lYInd2.begin() , lYInd2.end() );
+	  lYPoint.insert( lZPoint.end() , lZInd2.begin() , lZInd2.end() );
+	  lEInd2Point.insert( lEInd2Point.end() , lEnergyInd2.begin() , lEnergyInd2.end() );
+	  lChInd2Point.insert( lChInd2Point.end() , lChIntersectInd2.begin() , lChIntersectInd2.end() );
+	  int N2 = lYInd2.size();
+	  lEInd1Point.insert( lEInd1Point.end() , N2 , 0 );
+	  lChInd1Point.insert( lChInd1Point.end() , N2 , -1 );
+	}
+	  
       }
     }
 
@@ -1940,13 +1963,13 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
 
       (vTempCluster[ClusterID].lChannelCol).push_back( ChannelCol );
     }
-    if ( !Inside( ChannelInd1 , vTempCluster[ClusterID].lChannelInd1 ) )
+    if ( (ChannelInd1 != -1) && (!Inside( ChannelInd1 , vTempCluster[ClusterID].lChannelInd1 ) ) )
     {
       vTempCluster[ClusterID].EInd1 += vEInd1PointByEvent[index];
       vTempCluster[ClusterID].NInd1 += 1;
       (vTempCluster[ClusterID].lChannelInd1).push_back( ChannelInd1 );
     }
-    if ( !Inside( ChannelInd2 , vTempCluster[ClusterID].lChannelInd2 ) )
+    if ( (ChannelInd2 != -1) && (!Inside( ChannelInd2 , vTempCluster[ClusterID].lChannelInd2 ) ) )
     {
       vTempCluster[ClusterID].EInd2 += vEInd2PointByEvent[index];
       vTempCluster[ClusterID].NInd2 += 1;
