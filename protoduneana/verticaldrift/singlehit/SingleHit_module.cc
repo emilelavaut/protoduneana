@@ -64,7 +64,7 @@ typedef struct
   float Sumy , Sumz , ECol , EInd1 , EInd2 , PeakTime;                  
   int Npoint, NCol , NInd1 , NInd2;
   std::list<int> lChannelCol , lChannelInd1 , lChannelInd2;
-  std::vector<int> vMCPDG , vMCMOMpdg;
+  std::vector<int> vMCPDG , vMCMOMpdg , vNOF;
   std::vector<float> vMCWEI;
   std::vector<float> vMCX , vMCY , vMCZ;
   std::vector<std::string> vMCGenTag;
@@ -73,7 +73,7 @@ typedef struct
 typedef struct
 { 
   float y , z , ECol , EInd1 , EInd2 , PeakTime;
-  int Npoint, NCol , NInd1 , NInd2;
+  int Npoint, NCol , NInd1 , NInd2 , NOF;
   std::vector<int> vMCPDG , vMCMOMpdg;
   std::vector<float> vMCWEI;
   std::vector<float> vMCX , vMCY , vMCZ;
@@ -128,6 +128,7 @@ private:
   int fHitWidth      = -999;
   int fTimeIsolation = -999;
   int fCoincidence   = -999;
+  int fNearOrFarToTheBeam = -999; // 1 means hits is near the beam (ie right/top for HD/VD) -1 means far (ie left/bottom for HD/VD)
 
   float fEnergy         = -999.;
   float fPeakTime       = -999.;
@@ -184,6 +185,7 @@ private:
   std::vector<float> vEInd2Cluster;
   std::vector<float> vPTCluster;
 
+  std::vector<int>   vNoFCluster;
   std::vector<int>   vNPointCluster;
   std::vector<int>   vNColCluster; 
   std::vector<int>   vNInd1Cluster; 
@@ -250,6 +252,7 @@ private:
   std::vector<int>   vChannelColByEvent;
   std::vector<int>   vChInd1PointByEvent;
   std::vector<int>   vChInd2PointByEvent;
+  std::vector<int>   vNoFByEvent;
 
   std::vector<int>         vMCMOMpdgByEvent;
   std::vector<int>         vMCPDGByEvent;
@@ -330,7 +333,15 @@ private:
 
   std::vector<int> CheckClusters(std::vector<std::vector<float> > &data,std::vector<std::vector<float> > &cluster, float RMS , float mult , float tmp);
 
-  std::vector<Cluster> GetCluster( int n_point , int n_cluster , point p , std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent , std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent , std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent , std::vector<std::string> vGeneratorTagByEvent , std::vector<float> vMCXByEvent , std::vector<float> vMCYByEvent , std::vector<float> vMCZByEvent);
+  std::vector<Cluster> GetCluster( int n_point , int n_cluster , point p , 
+                                   std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , 
+                                   std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent , 
+                                   std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent , 
+                                   std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent , 
+                                   std::vector<std::string> vGeneratorTagByEvent ,
+                                   std::vector<float> vMCXByEvent , std::vector<float> vMCYByEvent , std::vector<float> vMCZByEvent , 
+                                   std::vector<int> vNoFByEvent);
+  bool AllSame(std::vector<int> v);
 
 };
 
@@ -408,7 +419,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     fChannel        = -999;
     fPlane          = -999;
     fHitWidth       = -999;
-
+    fNearOrFarToTheBeam = -999;
+	  
     fEnergy         = -999;
     fPeakTime       = -999;
     fSigmaPeakTime  = -999;
@@ -418,7 +430,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     fGoodnessOfFit  = -999;
     fIntegral       = -999;
     fSigmaIntegral  = -999;
-
+   
     fHitNumber   = -999;
     fCoincidence = -999;
     lWireInd1.clear();
@@ -491,6 +503,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vEInd2Cluster.push_back(-999);
     vPTCluster.push_back(-999);
 
+    vNoFCluster.push_back(-999);
     vNPointCluster.push_back(-999);
     vNColCluster.push_back(-999);
     vNInd1Cluster.push_back(-999);
@@ -620,7 +633,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     fChannel        = hit.Channel();
     fPlane          = hit.WireID().Plane;
     fHitWidth       = hit.EndTick() - hit.StartTick();
-
+	  
+    if ( (hit.WireID().TPC == 2)|| (hit.WireID().TPC == 6) ) fNearOrFarToTheBeam = -1;
+    if ( (hit.WireID().TPC == 1)|| (hit.WireID().TPC == 5) ) fNearOrFarToTheBeam = 1;
+	  
     fEnergy         = hit.SummedADC();//fCalibration;//electron
     fPeakTime       = hit.PeakTime();//*ftick_in_mus;
     fSigmaPeakTime  = hit.SigmaPeakTime();//*ftick_in_mus;
@@ -773,7 +789,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       vEInd2PointByEvent.push_back( *e2 );
       vChInd1PointByEvent.push_back( *ch1 );
       vChInd2PointByEvent.push_back( *ch2 );
-
+      vNoFByEvent.push_back( fNearOrFarToTheBeam );
       vEnergyColByEvent.push_back( fEnergy   );
       vPeakTimeColByEvent.push_back(  fPeakTime );
       vChannelColByEvent.push_back( fChannel );
@@ -806,7 +822,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     fCoincidence    = -999;
     fTimeIsolation  = -999;
     fAmbiguousHit   = 0;
-
+    fNearOrFarToTheBeam = -999;
+	  
     fEnergy         = -999.;
     fPeakTime       = -999.;
     fSigmaPeakTime  = -999.;
@@ -870,6 +887,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vEInd2Cluster.push_back(-999);
     vPTCluster.push_back(-999);
 
+    vNoFCluster.push_back(-999);
     vNPointCluster.push_back(-999);
     vNColCluster.push_back(-999);
     vNInd1Cluster.push_back(-999);
@@ -952,7 +970,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     if( LogLevel > 4) std::cout << " ......DONE" << std::endl;
   }
 
-  std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent , vMCXByEvent , vMCYByEvent , vMCZByEvent );
+  std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent , vMCXByEvent , vMCYByEvent , vMCZByEvent , vNoFByEvent);
   NCluster = vCluster.size();
 
   for( int j = 0 ; j < NCluster ; j++ )
@@ -964,7 +982,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vEInd1Cluster.push_back(vCluster[j].EInd1);
     vEInd2Cluster.push_back(vCluster[j].EInd2);
     vPTCluster.push_back(vCluster[j].PeakTime);
-
+	  
+    vNoFCluster.push_back(vCluster[j].NOF);
     vNPointCluster.push_back(vCluster[j].Npoint);
     vNColCluster.push_back(vCluster[j].NCol);
     vNInd1Cluster.push_back(vCluster[j].NInd1);
@@ -1014,7 +1033,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   fCoincidence    = -999;
   fTimeIsolation  = -999;
   fAmbiguousHit   = 0;
-
+  fNearOrFarToTheBeam = -999;
+	
   fEnergy         = -999.;
   fPeakTime       = -999.;
   fSigmaPeakTime  = -999.;
@@ -1128,7 +1148,8 @@ void pdvdana::SingleHit::beginJob()
   tHitTree->Branch("channel"       , &fChannel       );
   tHitTree->Branch("timeIsolation" , &fTimeIsolation );
   tHitTree->Branch("coincidence"   , &fCoincidence   );
-
+  tHitTree->Branch("NearOrFarToTheBeam" , &fNearOrFarToTheBeam );
+	
   tHitTree->Branch("energy"           , &fEnergy        );
   tHitTree->Branch("peakTime"         , &fPeakTime      );
   tHitTree->Branch("hitWidth"         , &fHitWidth      );
@@ -1184,6 +1205,7 @@ void pdvdana::SingleHit::beginJob()
   tClusterTree->Branch("Z"                  , &vZCluster        );
   tClusterTree->Branch("Y"                  , &vYCluster        );
   tClusterTree->Branch("EnergyCollection"   , &vEColCluster     );
+  tClusterTree->Branch("NearOrFarToTheBeam" , &vNoFCluster      );
   tClusterTree->Branch("EnergyPlane0"       , &vEInd1Cluster    );
   tClusterTree->Branch("EnergyPlane1"       , &vEInd2Cluster    );
   tClusterTree->Branch("NumberOfPoint"      , &vNPointCluster   );
@@ -1881,7 +1903,14 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
 
 }
 
-std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster , point p , std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent , std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent , std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent , std::vector<std::string> vGeneratorTagByEvent , std::vector<float> vMCXByEvent ,  std::vector<float> vMCYByEvent , std::vector<float> vMCZByEvent )
+std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster , point p , 
+                                                     std::vector<float> vEInd1PointByEvent , std::vector<float> vEInd2PointByEvent , 
+                                                     std::vector<int> vChInd1PointByEvent , std::vector<int> vChInd2PointByEvent ,  
+                                                     std::vector<float> vEnergyColByEvent , std::vector<float> vPeakTimeColByEvent , std::vector<int> vChannelColByEvent ,  
+                                                     std::vector<int> vMCPDGByEvent , std::vector<int> vMCMOMpdgByEvent ,std::vector<float> vMCWeightByEvent ,  
+                                                     std::vector<std::string> vGeneratorTagByEvent ,  
+                                                     std::vector<float> vMCXByEvent ,  std::vector<float> vMCYByEvent , std::vector<float> vMCZByEvent , 
+                                                     std::vector<int> vNoFByEvent )
 {
 
   int k;
@@ -1893,6 +1922,7 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
   NullCluster.ECol = 0;
   NullCluster.PeakTime = 0;
   NullCluster.NCol = 0;
+  NullCluster.vNOF.clear();
   NullCluster.vMCPDG.clear();
   NullCluster.vMCMOMpdg.clear();
   NullCluster.vMCWEI.clear();
@@ -1918,6 +1948,7 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     int index = vp->index;
     int ClusterID   = vp->group;
 
+    int NoF         = vNoFByEvent[index];
     int ChannelCol  = vChannelColByEvent[index];
     int ChannelInd1 = vChInd1PointByEvent[index];
     int ChannelInd2 = vChInd2PointByEvent[index];
@@ -1960,8 +1991,8 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
       (vTempCluster[ClusterID].vMCX).push_back( MCPart_x );
       (vTempCluster[ClusterID].vMCY).push_back( MCPart_y );
       (vTempCluster[ClusterID].vMCZ).push_back( MCPart_z );
-
       (vTempCluster[ClusterID].lChannelCol).push_back( ChannelCol );
+      (vTempCluster[ClusterID].vNOF).push_back( NoF );
     }
     if ( (ChannelInd1 != -1) && (!Inside( ChannelInd1 , vTempCluster[ClusterID].lChannelInd1 ) ) )
     {
@@ -1992,6 +2023,13 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     vCluster[j].NInd1  = vTempCluster[j].NInd1;
     vCluster[j].NInd2  = vTempCluster[j].NInd2;
 
+    if ( AllSame( vTempCluster[j].vNOF ) )  vCluster[j].NOF = vTempCluster[j].vNOF[0];
+    else 
+    {
+      vCluster[j].NOF = -999;
+      if (LogLevel > 2) std::cout << "CLUSTER WITH HITS FROM MULTIPLES TPC" << std::endl;
+    }
+	  
     vCluster[j].ECol     = vTempCluster[j].ECol;
     vCluster[j].EInd1    = vTempCluster[j].EInd1;
     vCluster[j].EInd2    = vTempCluster[j].EInd2;
@@ -2069,7 +2107,17 @@ std::vector<std::string> pdvdana::SingleHit::GetGeneratorTag( art::Event const &
 }
 
 
-
+bool AllSame( std::vector<int> v)
+{
+  bool allsame = true;
+  for( int i = 0; i < v.size() ; i++)
+  {
+    if( v[i] == v[0] ) continue;
+    allsame = false;
+    break;
+  }
+  return allsame;
+}
 
 
 
