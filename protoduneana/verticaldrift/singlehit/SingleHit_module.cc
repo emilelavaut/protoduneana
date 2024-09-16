@@ -37,6 +37,7 @@
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
+#include "lardataobj/RawData/RDTimeStamp.h"
 
 // ROOT
 #include "Math/ProbFunc.h"
@@ -140,6 +141,8 @@ private:
   float fIntegral       = -999.;
   float fSigmaIntegral  = -999.;
 
+  double CRP_T0 = -999;
+
   std::list<geo::WireID>   lWireInd1; //working variable
   std::list<int>           lChannelInd1;
   std::list<float>         lEnergyInd1;
@@ -205,6 +208,7 @@ private:
   std::string fTrackLabel;
   std::string fHitLabel;
   std::string fG4Label;
+  std::string fRDTLabel;
 
   int   LogLevel;
   int   fMultiplicity;
@@ -274,6 +278,7 @@ private:
   //function needed
   void print(std::vector<float> v);
   void print( std::vector<std::vector<int>> vv );
+  bool AllSame(std::vector<int> v);
 
   std::vector<std::string> GetGeneratorTag(  art::Event const& e , std::string fG4Label , int LogLevel , art::ServiceHandle<cheat::BackTrackerService> bt_serv );
 
@@ -308,6 +313,11 @@ private:
 
   std::vector<int> GetXYZIsolatedPoint( std::vector<float> vYPoint , std::vector<float> vZPoint , std::vector<float> vPeakTimeCol ,
                                                           float fElectronVelocity , float fTickToMus , float radiusInt , float radiusExt );
+  
+  bool IntersectOutsideOfTPC( double ChInd_start_y , double ChInd_start_z , double ChInd_end_y , double ChInd_end_z ,
+		     	                          double ChCol_start_y , double ChCol_start_z , double ChCol_end_y , double ChCol_end_z ,
+						  double& y , double& z );
+
   // CLUSTER FUNCTIONS
   point gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ );
   
@@ -341,18 +351,17 @@ private:
                                    std::vector<std::string> vGeneratorTagByEvent ,
                                    std::vector<float> vMCXByEvent , std::vector<float> vMCYByEvent , std::vector<float> vMCZByEvent , 
                                    std::vector<int> vNoFByEvent);
-  bool AllSame(std::vector<int> v);
-
 };
 
 
 pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
   : EDAnalyzer{p},
-    fSpacePointLabel(p.get<std::string>("SpacePointLabel")),
-    fClusterLabel(p.get<std::string>("ClusterLabel")),
-    fTrackLabel(p.get<std::string>("TrackLabel")),
-    fHitLabel(p.get<std::string>("HitLabel")),
-    fG4Label(p.get<std::string>("G4Label")),
+    fSpacePointLabel(p.get<std::string>("SpacePointLabel","reco3d")),
+    fClusterLabel(p.get<std::string>("ClusterLabel","pandora")),
+    fTrackLabel(p.get<std::string>("TrackLabel","pandoraTrack")),
+    fHitLabel(p.get<std::string>("HitLabel","hitpdune")),
+    fG4Label(p.get<std::string>("G4Label","largeant")),
+    fRDTLabel(p.get<std::string>("RDTLabel","tpcrawdecoder:daq")),
 
     LogLevel(p.get<int>("LogLevel")),
     fMultiplicity(p.get<int>("HitMultiplicity")),
@@ -365,7 +374,7 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
 
     fPitch(p.get<float>("Pitch")),
     fPitchMultiplier(p.get<float>("PitchMultiplier")),    
-    bIs3ViewsCoincidence(p.get<bool>("3ViewsCoincidence")),
+    bIs3ViewsCoincidence(p.get<bool>("Is3ViewsCoincidence")),
 
     fNumberInitClusters(p.get<int>("NumberInitClusters")),
     fMaxSizeCluster(p.get<float>("MaxSizeCluster")),
@@ -403,6 +412,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   art::ServiceHandle<cheat::BackTrackerService> bt_serv;
   art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
 
+  //Get DAQ Time Stamp
+  auto const& rdts = *e.getValidHandle<vector<raw::RDTimeStamp>>(fRDTLabel);
+  CRP_T0 = rdts[0].GetTimeStamp();
+  
   //Retreive map trackID MC particle to genrator tag
   std::vector<std::string> vTrackIDToGeneratorTag;
   if (!e.isRealData()) vTrackIDToGeneratorTag = GetGeneratorTag( e , fG4Label , LogLevel , bt_serv );
@@ -685,7 +698,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       if ( fCoincidence > 0 )
       {
         GetListOfCrossingChannel( fWire , lWireInd1 , lWireInd2 , lChannelInd1 , lYInd1 , lZInd1 , lChIntersectInd1 , lChannelInd2 , lYInd2 , lZInd2 , lChIntersectInd2 ); 
-        if ( Is3ViewsCoincidence ) GetListOf3ViewsPoint( fPitch , fPitchMultiplier , lChIntersectInd1 , lYInd1 , lZInd1 , lEnergyInd1 , lChIntersectInd2 , lYInd2 , lZInd2 , lEnergyInd2 , lYPoint , lZPoint , lEInd1Point , lEInd2Point , lChInd1Point , lChInd2Point);
+        if ( bIs3ViewsCoincidence ) GetListOf3ViewsPoint( fPitch , fPitchMultiplier , lChIntersectInd1 , lYInd1 , lZInd1 , lEnergyInd1 , lChIntersectInd2 , lYInd2 , lZInd2 , lEnergyInd2 , lYPoint , lZPoint , lEInd1Point , lEInd2Point , lChInd1Point , lChInd2Point);
 	else
 	{
 	  //induction 1
@@ -697,7 +710,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 	  lEInd2Point.insert( lEInd2Point.end() , N1 , 0 );
 	  lChInd2Point.insert( lChInd2Point.end() , N1 , -1 );
 
-	  //induction 1
+	  //induction 2
 	  lYPoint.insert( lYPoint.end() , lYInd2.begin() , lYInd2.end() );
 	  lYPoint.insert( lZPoint.end() , lZInd2.begin() , lZInd2.end() );
 	  lEInd2Point.insert( lEInd2Point.end() , lEnergyInd2.begin() , lEnergyInd2.end() );
@@ -1142,6 +1155,7 @@ void pdvdana::SingleHit::beginJob()
 
   //add branches
   tHitTree->Branch("eventID"       , &fEventID       );
+  tHitTree->Branch("CRP_T0"        , &CRP_T0         );
   tHitTree->Branch("wireID"        , &fWire          );
   tHitTree->Branch("hitNumber"     , &fHitNumber     );
   tHitTree->Branch("plane"         , &fPlane         );
@@ -1201,6 +1215,7 @@ void pdvdana::SingleHit::beginJob()
   tClusterTree = tfs->make<TTree>("ClusterTree","ClusterTree");
 
   tClusterTree->Branch("eventID"            , &fEventID         );
+  tClusterTree->Branch("CRP_T0"             , &CRP_T0           );
   tClusterTree->Branch("NumberOfCluster"    , &NCluster         );
   tClusterTree->Branch("Z"                  , &vZCluster        );
   tClusterTree->Branch("Y"                  , &vYCluster        );
@@ -1270,6 +1285,18 @@ float pdvdana::SingleHit::GetDist( float x0 , float y0 , float z0 , float x1 , f
 
 bool pdvdana::SingleHit::Inside( int k , std::list<int> list){
   return (std::find(list.begin(), list.end(), k) != list.end());
+}
+
+bool pdvdana::SingleHit::AllSame( std::vector<int> v)
+{
+  bool allsame = true;
+  for( int i = 0; i < (int) v.size() ; i++)
+  {
+    if( v[i] == v[0] ) continue;
+    allsame = false;
+    break;
+  }
+  return allsame;
 }
 
 void pdvdana::SingleHit::GetSingle(art::Event const & ev, std::string HitLabel, std::list<int> & index_list_single , int const Multiplicity)
@@ -1399,6 +1426,34 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
   }
 }
 
+bool pdvdana::SingleHit::IntersectOutsideOfTPC(double ChInd_start_y,
+                           double ChInd_start_z,
+                           double ChInd_end_y,
+                           double ChInd_end_z,
+                           double ChCol_start_y,
+                           double ChCol_start_z,
+                           double ChCol_end_y,
+                           double ChCol_end_z,
+                           double& y,
+                           double& z)
+{
+  // Equation from http://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+
+  double const denom = (ChInd_start_y - ChInd_end_y) * (ChCol_start_z - ChCol_end_z) - (ChInd_start_z - ChInd_end_z) * (ChCol_start_y - ChCol_end_y);
+
+  if (denom == 0) return false;
+
+  double const A = (ChInd_start_y * ChInd_end_z - ChInd_start_z * ChInd_end_y) / denom;
+  double const B = (ChCol_start_y * ChCol_end_z - ChCol_start_z * ChCol_end_y) / denom;
+
+  y = (ChCol_start_y - ChCol_end_y) * A - (ChInd_start_y - ChInd_end_y) * B;
+  z = (ChCol_start_z - ChCol_end_z) * A - (ChInd_start_z - ChInd_end_z) * B;
+
+  bool drap = ( z == ChCol_start_z ) && ( y > TMath::Min(ChCol_start_y,ChCol_end_y)) && ( y < TMath::Max(ChCol_start_y,ChCol_end_y));
+
+  return drap;
+}
+
 void pdvdana::SingleHit::GetListOfCrossingChannel( geo::WireID & WireCol , std::list<geo::WireID> & WireInd1 , std::list<geo::WireID> & WireInd2 , std::list<int>  & ChInd1,
                                                                                                                                                 std::list<float> & YInd1 , 
                                                                                                                                                 std::list<float> & ZInd1 ,
@@ -1411,14 +1466,28 @@ void pdvdana::SingleHit::GetListOfCrossingChannel( geo::WireID & WireCol , std::
   geo::Point_t point = geo::Point_t(-999,-999,-999);
   bool drap;
 
+  double y = -999. , z = -999.;
+  auto const wcol = fGeom->WireEndPoints(WireCol);
+
   std::list<int>::iterator ch1  = ChInd1.begin();
   for (auto const elementInd1 : WireInd1)
   {
     if (WireCol.TPC != elementInd1.TPC )
     {
+      auto const wind1 = fGeom->WireEndPoints(elementInd1);
+      bool flag = IntersectOutsideOfTPC(wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+      if (flag)
+      {
+	YInd1.push_back(y);
+        ZInd1.push_back(z);
+	ChIntersectInd1.push_back(*ch1);
+	++ch1;
+	continue;
+      }
       ++ch1;
       continue ;
     }
+
     drap = fGeom->WireIDsIntersect( WireCol , elementInd1 , point);
     if ( drap )
     {
@@ -1433,6 +1502,17 @@ void pdvdana::SingleHit::GetListOfCrossingChannel( geo::WireID & WireCol , std::
   { 
     if (WireCol.TPC != elementInd2.TPC )
     { 
+      auto const wind2 = fGeom->WireEndPoints(elementInd2);
+      bool flag = IntersectOutsideOfTPC(wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+      if (flag)
+      {
+        YInd2.push_back(y);
+        ZInd2.push_back(z);
+        ChIntersectInd2.push_back(*ch2);
+        ++ch2;
+        continue;
+      }
+
       ++ch2; 
       continue ;
     }
@@ -2023,7 +2103,8 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     vCluster[j].NInd1  = vTempCluster[j].NInd1;
     vCluster[j].NInd2  = vTempCluster[j].NInd2;
 
-    if ( AllSame( vTempCluster[j].vNOF ) )  vCluster[j].NOF = vTempCluster[j].vNOF[0];
+    std::vector<int> vtemp_NOF = vTempCluster[j].vNOF;
+    if ( AllSame( vtemp_NOF ) )  vCluster[j].NOF = vTempCluster[j].vNOF[0];
     else 
     {
       vCluster[j].NOF = -999;
@@ -2105,21 +2186,6 @@ std::vector<std::string> pdvdana::SingleHit::GetGeneratorTag( art::Event const &
 
     return vGeneratorLabels;
 }
-
-
-bool AllSame( std::vector<int> v)
-{
-  bool allsame = true;
-  for( int i = 0; i < v.size() ; i++)
-  {
-    if( v[i] == v[0] ) continue;
-    allsame = false;
-    break;
-  }
-  return allsame;
-}
-
-
 
 
 DEFINE_ART_MODULE(pdvdana::SingleHit)
