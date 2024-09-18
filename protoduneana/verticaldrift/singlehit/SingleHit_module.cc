@@ -221,7 +221,11 @@ private:
   float fTimePlane1ToPlane2; 
   float fPitch;
   float fPitchMultiplier;
+
   bool  bIs3ViewsCoincidence;
+  bool  bHitTree;
+  bool  bIsPDVD;
+  bool  bIsPDHD;
 
   float fNumberInitClusters;
   float fMaxSizeCluster;
@@ -234,6 +238,12 @@ private:
 
   // geometry
   const geo::Geometry* fGeom;
+  float fgeoXmin = 1e6; 
+  float fgeoXmax =-1e6; 
+  float fgeoYmin = 1e6; 
+  float fgeoYmax =-1e6; 
+  float fgeoZmin = 1e6; 
+  float fgeoZmax =-1e6; 
 
   // working variables
  
@@ -300,7 +310,8 @@ private:
                                                                                   std::list<float> & PTInd1,
                                                                                   std::list<float> & PTInd2);
 
-  void GetListOfCrossingChannel( geo::WireID & WireCol , std::list<geo::WireID> & WireInd1 , std::list<geo::WireID> & WireInd2 ,
+  void GetListOfCrossingChannel( float Ymin , float Ymax , float Zmin , float Zmax ,
+		              geo::WireID & WireCol , std::list<geo::WireID> & WireInd1 , std::list<geo::WireID> & WireInd2 ,
                               std::list<int>  & ChInd1 , std::list<float> & YInd1 , std::list<float> & ZInd1 , std::list<int>  & ChIntersectInd1 ,
                               std::list<int>  & ChInd2 , std::list<float> & YInd2 , std::list<float> & ZInd2 , std::list<int>  & ChIntersectInd2 );
 
@@ -314,7 +325,7 @@ private:
   std::vector<int> GetXYZIsolatedPoint( std::vector<float> vYPoint , std::vector<float> vZPoint , std::vector<float> vPeakTimeCol ,
                                                           float fElectronVelocity , float fTickToMus , float radiusInt , float radiusExt );
   
-  bool IntersectOutsideOfTPC( double ChInd_start_y , double ChInd_start_z , double ChInd_end_y , double ChInd_end_z ,
+  bool IntersectOutsideOfTPC( float Ymin , float Ymax , float Zmin , float Zmax , double ChInd_start_y , double ChInd_start_z , double ChInd_end_y , double ChInd_end_z ,
 		     	                          double ChCol_start_y , double ChCol_start_z , double ChCol_end_y , double ChCol_end_z ,
 						  double& y , double& z );
 
@@ -374,7 +385,11 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
 
     fPitch(p.get<float>("Pitch")),
     fPitchMultiplier(p.get<float>("PitchMultiplier")),    
+  
     bIs3ViewsCoincidence(p.get<bool>("Is3ViewsCoincidence")),
+    bHitTree(p.get<bool>("HitTree")),
+    bIsPDVD(p.get<bool>("IsPDVD",false)),
+    bIsPDHD(p.get<bool>("IsPDHD",false)),
 
     fNumberInitClusters(p.get<int>("NumberInitClusters")),
     fMaxSizeCluster(p.get<float>("MaxSizeCluster")),
@@ -397,6 +412,28 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
   fTimePlane1ToPlane2 = fTimePlane1ToPlane2/fTickTimeInMus; // in tt
 
   fElectronVelocity   = detProp.DriftVelocity();
+  
+  //Get detector Boundaries
+  unsigned fNtpcs = fGeom->NTPC();
+
+  for(unsigned t_tpc_id=0;t_tpc_id<fNtpcs;t_tpc_id++)
+  {
+    geo::TPCID tpcid{0, t_tpc_id};
+    if(fgeoXmin > fGeom->TPC(tpcid).BoundingBox().MinX()) fgeoXmin = fGeom->TPC(tpcid).BoundingBox().MinX();
+    if(fgeoXmax < fGeom->TPC(tpcid).BoundingBox().MaxX()) fgeoXmax = fGeom->TPC(tpcid).BoundingBox().MaxX();
+    if(fgeoYmin > fGeom->TPC(tpcid).BoundingBox().MinY()) fgeoYmin = fGeom->TPC(tpcid).BoundingBox().MinY();
+    if(fgeoYmax < fGeom->TPC(tpcid).BoundingBox().MaxY()) fgeoYmax = fGeom->TPC(tpcid).BoundingBox().MaxY();
+    if(fgeoZmin > fGeom->TPC(tpcid).BoundingBox().MinZ()) fgeoZmin = fGeom->TPC(tpcid).BoundingBox().MinZ();
+    if(fgeoZmax < fGeom->TPC(tpcid).BoundingBox().MaxZ()) fgeoZmax = fGeom->TPC(tpcid).BoundingBox().MaxZ();
+  }
+  if(LogLevel>0) 
+  {
+    std::cout << " -- detector boundaries -- " << std::endl;
+    std::cout << "  " << fgeoXmin << " < X < " << fgeoXmax << std::endl;
+    std::cout << "  " << fgeoYmin << " < Y < " << fgeoYmax << std::endl;
+    std::cout << "  " << fgeoZmin << " < Z < " << fgeoZmax << std::endl;
+  }
+
 }
 
 void pdvdana::SingleHit::analyze(art::Event const& e)
@@ -506,7 +543,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCPart_Startz.clear();
     vMCPart_Startz.push_back(-9999);
 
-    tHitTree->Fill();
+    if (bHitTree) tHitTree->Fill();
 
     NCluster = 0;
     vZCluster.push_back(-999);
@@ -646,10 +683,18 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     fChannel        = hit.Channel();
     fPlane          = hit.WireID().Plane;
     fHitWidth       = hit.EndTick() - hit.StartTick();
-	  
-    if ( (hit.WireID().TPC == 2)|| (hit.WireID().TPC == 6) ) fNearOrFarToTheBeam = -1;
-    if ( (hit.WireID().TPC == 1)|| (hit.WireID().TPC == 5) ) fNearOrFarToTheBeam = 1;
-	  
+	 
+    if (bIsPDHD)
+    { 
+      if ( (hit.WireID().TPC == 2)|| (hit.WireID().TPC == 6) ) fNearOrFarToTheBeam = -1;
+      if ( (hit.WireID().TPC == 1)|| (hit.WireID().TPC == 5) ) fNearOrFarToTheBeam = 1;
+    }
+    if (bIsPDVD)
+    {
+      if (hit.WireID().TPC <= 7 ) fNearOrFarToTheBeam = -1;
+      if (hit.WireID().TPC  > 7 ) fNearOrFarToTheBeam = 1;
+    }    
+
     fEnergy         = hit.SummedADC();//fCalibration;//electron
     fPeakTime       = hit.PeakTime();//*ftick_in_mus;
     fSigmaPeakTime  = hit.SigmaPeakTime();//*ftick_in_mus;
@@ -697,13 +742,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
       if ( fCoincidence > 0 )
       {
-        GetListOfCrossingChannel( fWire , lWireInd1 , lWireInd2 , lChannelInd1 , lYInd1 , lZInd1 , lChIntersectInd1 , lChannelInd2 , lYInd2 , lZInd2 , lChIntersectInd2 ); 
+        GetListOfCrossingChannel( fgeoYmin , fgeoYmax , fgeoZmin , fgeoZmax , fWire , lWireInd1 , lWireInd2 , lChannelInd1 , lYInd1 , lZInd1 , lChIntersectInd1 , lChannelInd2 , lYInd2 , lZInd2 , lChIntersectInd2 ); 
         if ( bIs3ViewsCoincidence ) GetListOf3ViewsPoint( fPitch , fPitchMultiplier , lChIntersectInd1 , lYInd1 , lZInd1 , lEnergyInd1 , lChIntersectInd2 , lYInd2 , lZInd2 , lEnergyInd2 , lYPoint , lZPoint , lEInd1Point , lEInd2Point , lChInd1Point , lChInd2Point);
 	else
 	{
 	  //induction 1
 	  lYPoint.insert( lYPoint.end() , lYInd1.begin() , lYInd1.end() );
-	  lYPoint.insert( lZPoint.end() , lZInd1.begin() , lZInd1.end() );
+	  lZPoint.insert( lZPoint.end() , lZInd1.begin() , lZInd1.end() );
 	  lEInd1Point.insert( lEInd1Point.end() , lEnergyInd1.begin() , lEnergyInd1.end() );
 	  lChInd1Point.insert( lChInd1Point.end() , lChIntersectInd1.begin() , lChIntersectInd1.end() );
 	  int N1 = lYInd1.size();
@@ -712,7 +757,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
 	  //induction 2
 	  lYPoint.insert( lYPoint.end() , lYInd2.begin() , lYInd2.end() );
-	  lYPoint.insert( lZPoint.end() , lZInd2.begin() , lZInd2.end() );
+	  lZPoint.insert( lZPoint.end() , lZInd2.begin() , lZInd2.end() );
 	  lEInd2Point.insert( lEInd2Point.end() , lEnergyInd2.begin() , lEnergyInd2.end() );
 	  lChInd2Point.insert( lChInd2Point.end() , lChIntersectInd2.begin() , lChIntersectInd2.end() );
 	  int N2 = lYInd2.size();
@@ -773,7 +818,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     if ( Inside(index, lIsolatedIndex) ) fTimeIsolation+=1;
   
     //Filling Hit tree
-    tHitTree->Fill();
+    if (bHitTree) tHitTree->Fill();
 
     // Retreiving hit info by event
 
@@ -989,6 +1034,12 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   for( int j = 0 ; j < NCluster ; j++ )
   {
     // Filling tree variables
+    if ( vCluster[j].Npoint == 0) 
+    {
+      if( LogLevel > 4) std::cout << "no point in cluster " << j << std::endl;
+      continue;
+    }
+
     vYCluster.push_back(vCluster[j].y);
     vZCluster.push_back(vCluster[j].z);
     vEColCluster.push_back(vCluster[j].ECol);
@@ -1151,65 +1202,67 @@ void pdvdana::SingleHit::beginJob()
   art::ServiceHandle<art::TFileService> tfs;
   
   // HIT TREE
-  tHitTree = tfs->make<TTree>("hitTree", "Output Tree");
 
-  //add branches
-  tHitTree->Branch("eventID"       , &fEventID       );
-  tHitTree->Branch("CRP_T0"        , &CRP_T0         );
-  tHitTree->Branch("wireID"        , &fWire          );
-  tHitTree->Branch("hitNumber"     , &fHitNumber     );
-  tHitTree->Branch("plane"         , &fPlane         );
-  tHitTree->Branch("channel"       , &fChannel       );
-  tHitTree->Branch("timeIsolation" , &fTimeIsolation );
-  tHitTree->Branch("coincidence"   , &fCoincidence   );
-  tHitTree->Branch("NearOrFarToTheBeam" , &fNearOrFarToTheBeam );
+  if (bHitTree) 
+  {
+    tHitTree = tfs->make<TTree>("hitTree", "Output Tree");
+
+    //add branches
+    tHitTree->Branch("eventID"       , &fEventID       );
+    tHitTree->Branch("CRP_T0"        , &CRP_T0         );
+    tHitTree->Branch("wireID"        , &fWire          );
+    tHitTree->Branch("hitNumber"     , &fHitNumber     );
+    tHitTree->Branch("plane"         , &fPlane         );
+    tHitTree->Branch("channel"       , &fChannel       );
+    tHitTree->Branch("timeIsolation" , &fTimeIsolation );
+    tHitTree->Branch("coincidence"   , &fCoincidence   );
+    tHitTree->Branch("NearOrFarToTheBeam" , &fNearOrFarToTheBeam );
 	
-  tHitTree->Branch("energy"           , &fEnergy        );
-  tHitTree->Branch("peakTime"         , &fPeakTime      );
-  tHitTree->Branch("hitWidth"         , &fHitWidth      );
-  tHitTree->Branch("sigmaPeakTime"    , &fSigmaPeakTime );
-  tHitTree->Branch("amplitudePeaktime", &fAmplitude     );
-  tHitTree->Branch("sigmaAmplitude"   , &fSigmaAmplitude);
-  tHitTree->Branch("rms"              , &fRMS           );
-  tHitTree->Branch("goodnessOfFit"    , &fGoodnessOfFit );
-  tHitTree->Branch("integral"         , &fIntegral      );
-  tHitTree->Branch("sigmaIntegral"    , &fSigmaIntegral );
+    tHitTree->Branch("energy"           , &fEnergy        );
+    tHitTree->Branch("peakTime"         , &fPeakTime      );
+    tHitTree->Branch("hitWidth"         , &fHitWidth      );
+    tHitTree->Branch("sigmaPeakTime"    , &fSigmaPeakTime );
+    tHitTree->Branch("amplitudePeaktime", &fAmplitude     );
+    tHitTree->Branch("sigmaAmplitude"   , &fSigmaAmplitude);
+    tHitTree->Branch("rms"              , &fRMS           );
+    tHitTree->Branch("goodnessOfFit"    , &fGoodnessOfFit );
+    tHitTree->Branch("integral"         , &fIntegral      );
+    tHitTree->Branch("sigmaIntegral"    , &fSigmaIntegral );
 
-  tHitTree->Branch("listChannelInd1"        , &lChannelInd1     );
-  tHitTree->Branch("listEnergyInd1"         , &lEnergyInd1      );
-  tHitTree->Branch("listPeakTimeInd1"       , &lPeakTimeInd1    );
-  tHitTree->Branch("listYIntersecPointInd1" , &lYInd1           );
-  tHitTree->Branch("listZIntersecPointInd1" , &lZInd1           );
-  tHitTree->Branch("listChIntersecInd1"     , &lChIntersectInd1 );
+    tHitTree->Branch("listChannelInd1"        , &lChannelInd1     );
+    tHitTree->Branch("listEnergyInd1"         , &lEnergyInd1      );
+    tHitTree->Branch("listPeakTimeInd1"       , &lPeakTimeInd1    );
+    tHitTree->Branch("listYIntersecPointInd1" , &lYInd1           );
+    tHitTree->Branch("listZIntersecPointInd1" , &lZInd1           );
+    tHitTree->Branch("listChIntersecInd1"     , &lChIntersectInd1 );
 
-  tHitTree->Branch("listChannelInd2"        , &lChannelInd2     );
-  tHitTree->Branch("listEnergyInd2"         , &lEnergyInd2      );
-  tHitTree->Branch("listPeakTimeInd2"       , &lPeakTimeInd2    );
-  tHitTree->Branch("listYIntersecPointInd2" , &lYInd2           );
-  tHitTree->Branch("listZIntersecPointInd2" , &lZInd2           );
-  tHitTree->Branch("listChIntersecInd2"     , &lChIntersectInd2 );
+    tHitTree->Branch("listChannelInd2"        , &lChannelInd2     );
+    tHitTree->Branch("listEnergyInd2"         , &lEnergyInd2      );
+    tHitTree->Branch("listPeakTimeInd2"       , &lPeakTimeInd2    );
+    tHitTree->Branch("listYIntersecPointInd2" , &lYInd2           );
+    tHitTree->Branch("listZIntersecPointInd2" , &lZInd2           );
+    tHitTree->Branch("listChIntersecInd2"     , &lChIntersectInd2 );
 
-  tHitTree->Branch("listOfYPoint"           , &lYPoint      );
-  tHitTree->Branch("listOfZPoint"           , &lZPoint      );
-  tHitTree->Branch("listEInd1Point"         , &lEInd1Point  );
-  tHitTree->Branch("listEInd2Point"         , &lEInd2Point  );
-  tHitTree->Branch("listChInd1Point"        , &lChInd1Point );
-  tHitTree->Branch("listChInd2Point"        , &lChInd2Point );
+    tHitTree->Branch("listOfYPoint"           , &lYPoint      );
+    tHitTree->Branch("listOfZPoint"           , &lZPoint      );
+    tHitTree->Branch("listEInd1Point"         , &lEInd1Point  );
+    tHitTree->Branch("listEInd2Point"         , &lEInd2Point  );
+    tHitTree->Branch("listChInd1Point"        , &lChInd1Point );
+    tHitTree->Branch("listChInd2Point"        , &lChInd2Point );
 
-  tHitTree->Branch("vectorOFMCParticlePDG"     , &vMCPart_pdgCode   );
-  tHitTree->Branch("vectorOFMCParticleMom"     , &vMCPart_mother    );
-  tHitTree->Branch("vectorOFMCParticleMomPDG"  , &vMCPart_motherPdg );
-  tHitTree->Branch("vectorOFMCParticleWeight"  , &vMCPart_weight    );
-  tHitTree->Branch("vectorOFMCParticleEX"      , &vMCPart_Endx      );
-  tHitTree->Branch("vectorOFMCParticleEY"      , &vMCPart_Endy      );
-  tHitTree->Branch("vectorOFMCParticleEZ"      , &vMCPart_Endz      );
-  tHitTree->Branch("vectorOFMCParticleSX"      , &vMCPart_Startx    );
-  tHitTree->Branch("vectorOFMCParticleSY"      , &vMCPart_Starty    );
-  tHitTree->Branch("vectorOFMCParticleSZ"      , &vMCPart_Startz    );
-  tHitTree->Branch("vectorOFGeneratorTag"      , &vGenerator_tag    );
+    tHitTree->Branch("vectorOFMCParticlePDG"     , &vMCPart_pdgCode   );
+    tHitTree->Branch("vectorOFMCParticleMom"     , &vMCPart_mother    );
+    tHitTree->Branch("vectorOFMCParticleMomPDG"  , &vMCPart_motherPdg );
+    tHitTree->Branch("vectorOFMCParticleWeight"  , &vMCPart_weight    );
+    tHitTree->Branch("vectorOFMCParticleEX"      , &vMCPart_Endx      );
+    tHitTree->Branch("vectorOFMCParticleEY"      , &vMCPart_Endy      );
+    tHitTree->Branch("vectorOFMCParticleEZ"      , &vMCPart_Endz      );
+    tHitTree->Branch("vectorOFMCParticleSX"      , &vMCPart_Startx    );
+    tHitTree->Branch("vectorOFMCParticleSY"      , &vMCPart_Starty    );
+    tHitTree->Branch("vectorOFMCParticleSZ"      , &vMCPart_Startz    );
+    tHitTree->Branch("vectorOFGeneratorTag"      , &vGenerator_tag    );
 
-  //tHitTree->Branch("vectorOFMCParticlePrc"  , &vMCPart_process );
-
+  }
 
   // CLUSTER TREE
   tClusterTree = tfs->make<TTree>("ClusterTree","ClusterTree");
@@ -1289,6 +1342,7 @@ bool pdvdana::SingleHit::Inside( int k , std::list<int> list){
 
 bool pdvdana::SingleHit::AllSame( std::vector<int> v)
 {
+  if (v.size() == 0) return false;
   bool allsame = true;
   for( int i = 0; i < (int) v.size() ; i++)
   {
@@ -1320,8 +1374,7 @@ void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string Hit
   recob::Hit hit = hitlist->at(0);
   float PeakTime = -999;
 
-  float PeakTimeSingle  = -999;
-
+  float PeakTimeSingle     = -999;
   float PeakTimeMinInt     = -999;
   float PeakTimeMaxInt     = -999;
   float PeakTimeMinExt     = -999;
@@ -1334,7 +1387,7 @@ void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string Hit
       hit      = hitlist->at(i);
       PeakTime = hit.PeakTime();
 
-      PeakTimeSingle  = -999;
+      PeakTimeSingle     = -999;
       PeakTimeMinInt     = -999;
       PeakTimeMaxInt     = -999;
       PeakTimeMinExt     = -999;
@@ -1426,16 +1479,12 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
   }
 }
 
-bool pdvdana::SingleHit::IntersectOutsideOfTPC(double ChInd_start_y,
-                           double ChInd_start_z,
-                           double ChInd_end_y,
-                           double ChInd_end_z,
-                           double ChCol_start_y,
-                           double ChCol_start_z,
-                           double ChCol_end_y,
-                           double ChCol_end_z,
-                           double& y,
-                           double& z)
+bool pdvdana::SingleHit::IntersectOutsideOfTPC( float Ymin , float Ymax , float Zmin , float Zmax ,
+		                                double ChInd_start_y , double ChInd_start_z ,
+					       	double ChInd_end_y ,double ChInd_end_z ,
+						double ChCol_start_y , double ChCol_start_z ,
+					    	double ChCol_end_y , double ChCol_end_z ,
+		     				double& y , double& z )
 {
   // Equation from http://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 
@@ -1449,19 +1498,15 @@ bool pdvdana::SingleHit::IntersectOutsideOfTPC(double ChInd_start_y,
   y = (ChCol_start_y - ChCol_end_y) * A - (ChInd_start_y - ChInd_end_y) * B;
   z = (ChCol_start_z - ChCol_end_z) * A - (ChInd_start_z - ChInd_end_z) * B;
 
-  bool drap = ( z == ChCol_start_z ) && ( y > TMath::Min(ChCol_start_y,ChCol_end_y)) && ( y < TMath::Max(ChCol_start_y,ChCol_end_y));
-
+  bool drap = ( y > Ymin ) && ( y < Ymax ) && ( z > Zmin ) && ( z < Zmax ) ;
+  
   return drap;
 }
 
-void pdvdana::SingleHit::GetListOfCrossingChannel( geo::WireID & WireCol , std::list<geo::WireID> & WireInd1 , std::list<geo::WireID> & WireInd2 , std::list<int>  & ChInd1,
-                                                                                                                                                std::list<float> & YInd1 , 
-                                                                                                                                                std::list<float> & ZInd1 ,
-                                                                                                                                                std::list<int>  & ChIntersectInd1 , 
-                                                                                                                                                std::list<int>  & ChInd2 ,
-                                                                                                                                                std::list<float> & YInd2 , 
-                                                                                                                                                std::list<float> & ZInd2 , 
-                                                                                                                                                std::list<int>  & ChIntersectInd2 )
+void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , float Zmin , float Zmax ,
+		                                    geo::WireID & WireCol , std::list<geo::WireID> & WireInd1 , std::list<geo::WireID> & WireInd2 , 
+						    std::list<int>  & ChInd1 , std::list<float> & YInd1 , std::list<float> & ZInd1 , std::list<int>  & ChIntersectInd1 , 
+                                                    std::list<int>  & ChInd2 , std::list<float> & YInd2 , std::list<float> & ZInd2 , std::list<int>  & ChIntersectInd2 )
 {
   geo::Point_t point = geo::Point_t(-999,-999,-999);
   bool drap;
@@ -1474,8 +1519,9 @@ void pdvdana::SingleHit::GetListOfCrossingChannel( geo::WireID & WireCol , std::
   {
     if (WireCol.TPC != elementInd1.TPC )
     {
+      
       auto const wind1 = fGeom->WireEndPoints(elementInd1);
-      bool flag = IntersectOutsideOfTPC(wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
       if (flag)
       {
 	YInd1.push_back(y);
@@ -1503,7 +1549,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel( geo::WireID & WireCol , std::
     if (WireCol.TPC != elementInd2.TPC )
     { 
       auto const wind2 = fGeom->WireEndPoints(elementInd2);
-      bool flag = IntersectOutsideOfTPC(wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
       if (flag)
       {
         YInd2.push_back(y);
@@ -2022,11 +2068,13 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
  
   int out = 0;
 
+  if( LogLevel > 5) std::cout << "there are " << n_cluster << " clusters to check" << std::endl;
   for( k = 0 , vp=p ; k<n_point ; k++ , vp++)
   {
 
     int index = vp->index;
     int ClusterID   = vp->group;
+
 
     int NoF         = vNoFByEvent[index];
     int ChannelCol  = vChannelColByEvent[index];
@@ -2095,8 +2143,17 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
   for( int j = 0 ; j < n_cluster ; j++ )
   {
 
-    vCluster[j].z = ( vTempCluster[j].Sumz )/(vTempCluster[j].ECol);
-    vCluster[j].y = ( vTempCluster[j].Sumy )/(vTempCluster[j].ECol);
+    if (vTempCluster[j].ECol) 
+    {
+      vCluster[j].z = ( vTempCluster[j].Sumz )/(vTempCluster[j].ECol);
+      vCluster[j].y = ( vTempCluster[j].Sumy )/(vTempCluster[j].ECol);
+    }
+    else 
+    {
+      vCluster[j].z = -999.;
+      vCluster[j].y = -999.;
+      if ( LogLevel > 3) std::cout << "cluster with null energy on colection" << std::endl;
+    }
 
     vCluster[j].Npoint = vTempCluster[j].Npoint;
     vCluster[j].NCol   = vTempCluster[j].NCol;
@@ -2114,7 +2171,12 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
     vCluster[j].ECol     = vTempCluster[j].ECol;
     vCluster[j].EInd1    = vTempCluster[j].EInd1;
     vCluster[j].EInd2    = vTempCluster[j].EInd2;
-    vCluster[j].PeakTime = vTempCluster[j].PeakTime/vTempCluster[j].NCol;
+    if (vTempCluster[j].NCol) vCluster[j].PeakTime = vTempCluster[j].PeakTime/vTempCluster[j].NCol;
+    else
+    {
+      vCluster[j].PeakTime = -999.;
+      if ( LogLevel > 3) std::cout << "cluster with no hits on colection" << std::endl;
+    }
 
     vCluster[j].vMCPDG = vTempCluster[j].vMCPDG;
     vCluster[j].vMCMOMpdg = vTempCluster[j].vMCMOMpdg;

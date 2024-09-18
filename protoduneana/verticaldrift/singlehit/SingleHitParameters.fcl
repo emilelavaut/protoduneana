@@ -10,6 +10,7 @@ SingleHitParams:
   TrackLabel:        "pandoraTrack"
   HitLabel:          "hitpdune"
   G4Label:           "largeant"
+  RDTLabel:          "tpcrawdecoder:daq"
 
   HitMultiplicity:      3
 
@@ -21,7 +22,10 @@ SingleHitParams:
   TimePlane1ToPlane2:   4    # in mus
   Pitch:                0.5  # in cm
   PitchMultiplier:      1.2
-  Is3ViewsCoincidence:    false #if false then only 2 views coincidence is imposed
+  Is3ViewsCoincidence:  false #if false then only 2 views coincidence is imposed
+  HitTree:              true #if you want the hit tree or not
+  IsPDVD:               false
+  IsPDHD:               false
 
   #Cluster variables
   NumberInitClusters:   1

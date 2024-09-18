@@ -48,3 +48,4 @@ physics:
   analysis: [ ana ]
   end_paths: [ analysis ]
 }
+physics.analyzers.ana.IsPDHD: true

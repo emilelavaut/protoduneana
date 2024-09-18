@@ -47,3 +47,5 @@ physics:
   end_paths: [ analysis ]
 }
 
+physics.analyzers.ana.IsPDVD: true
+
