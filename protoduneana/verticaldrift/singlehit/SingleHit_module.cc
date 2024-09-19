@@ -226,6 +226,7 @@ private:
   bool  bHitTree;
   bool  bIsPDVD;
   bool  bIsPDHD;
+  bool  bVetoTrack;
 
   float fNumberInitClusters;
   float fMaxSizeCluster;
@@ -390,6 +391,7 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     bHitTree(p.get<bool>("HitTree")),
     bIsPDVD(p.get<bool>("IsPDVD",false)),
     bIsPDHD(p.get<bool>("IsPDHD",false)),
+    bVetoTrack(p.get<bool>("VetoTrack",false)),
 
     fNumberInitClusters(p.get<int>("NumberInitClusters")),
     fMaxSizeCluster(p.get<float>("MaxSizeCluster")),
@@ -1068,27 +1070,28 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   NCluster = NCluster - NEmpty_cluster;
   // veto part
-
-  auto const tracklist = e.getValidHandle<vector<recob::Track>>(fTrackLabel);
-
-  vVetoTrackStartX.clear();
-  vVetoTrackStartY.clear();
-  vVetoTrackStartZ.clear();
-  vVetoTrackEndX.clear();
-  vVetoTrackEndY.clear();
-  vVetoTrackEndZ.clear();
-
-  for (unsigned itrk = 0; itrk < tracklist->size(); ++itrk) 
+  if (bVetoTrack)
   {
-    const recob::Track& track = tracklist->at(itrk);
-    vVetoTrackStartX.push_back( track.Start().X() );
-    vVetoTrackStartY.push_back( track.Start().Y() );
-    vVetoTrackStartZ.push_back( track.Start().Z() );
-    vVetoTrackEndX.push_back( track.End().X() );
-    vVetoTrackEndY.push_back( track.End().Y() );
-    vVetoTrackEndZ.push_back( track.End().Z() );
-  }
+    auto const tracklist = e.getValidHandle<vector<recob::Track>>(fTrackLabel);
 
+    vVetoTrackStartX.clear();
+    vVetoTrackStartY.clear();
+    vVetoTrackStartZ.clear();
+    vVetoTrackEndX.clear();
+    vVetoTrackEndY.clear();
+    vVetoTrackEndZ.clear();
+
+    for (unsigned itrk = 0; itrk < tracklist->size(); ++itrk) 
+    {
+      const recob::Track& track = tracklist->at(itrk);
+      vVetoTrackStartX.push_back( track.Start().X() );
+      vVetoTrackStartY.push_back( track.Start().Y() );
+      vVetoTrackStartZ.push_back( track.Start().Z() );
+      vVetoTrackEndX.push_back( track.End().X() );
+      vVetoTrackEndY.push_back( track.End().Y() );
+      vVetoTrackEndZ.push_back( track.End().Z() );
+    }
+  }
   tClusterTree->Fill();
    
 
@@ -1292,12 +1295,15 @@ void pdvdana::SingleHit::beginJob()
   tClusterTree->Branch("MCParticleZ"        , &vMCZCluster      );
   tClusterTree->Branch("HitGenerationTag"   , &vMCGenTagCluster );
 
-  tClusterTree->Branch("VetoTrackStartX"    , &vVetoTrackStartX );
-  tClusterTree->Branch("VetoTrackStartY"    , &vVetoTrackStartY );
-  tClusterTree->Branch("VetoTrackStartZ"    , &vVetoTrackStartZ );
-  tClusterTree->Branch("VetoTrackEndX"      , &vVetoTrackEndX   );
-  tClusterTree->Branch("VetoTrackEndY"      , &vVetoTrackEndY   );
-  tClusterTree->Branch("VetoTrackEndZ"      , &vVetoTrackEndZ   );
+  if (bVetoTrack)
+  {
+    tClusterTree->Branch("VetoTrackStartX"    , &vVetoTrackStartX );
+    tClusterTree->Branch("VetoTrackStartY"    , &vVetoTrackStartY );
+    tClusterTree->Branch("VetoTrackStartZ"    , &vVetoTrackStartZ );
+    tClusterTree->Branch("VetoTrackEndX"      , &vVetoTrackEndX   );
+    tClusterTree->Branch("VetoTrackEndY"      , &vVetoTrackEndY   );
+    tClusterTree->Branch("VetoTrackEndZ"      , &vVetoTrackEndZ   );
+  }
 }
 
 
