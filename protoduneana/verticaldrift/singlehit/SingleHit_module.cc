@@ -453,11 +453,11 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   auto const& rdts = *e.getValidHandle<vector<raw::RDTimeStamp>>(fRDTLabel);
   CRP_T0 = rdts[0].GetTimeStamp();
   
-  //Retreive map trackID MC particle to genrator tag
+  //retrieve map trackID MC particle to genrator tag
   std::vector<std::string> vTrackIDToGeneratorTag;
   if (!e.isRealData()) vTrackIDToGeneratorTag = GetGeneratorTag( e , fG4Label , LogLevel , bt_serv );
  
-  //Retreive hit list
+  //retrieve hit list
   //art::InputTag hittag(fHitLabel);
   auto const HitList = e.getValidHandle<vector<recob::Hit>>(fHitLabel);
   fNHits = HitList->size();
