@@ -1036,6 +1036,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     // Filling tree variables
     if ( vCluster[j].Npoint == 0) 
     {
+      NCluster += -1; 
       if( LogLevel > 4) std::cout << "no point in cluster " << j << std::endl;
       continue;
     }
