@@ -1031,12 +1031,13 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent , vMCXByEvent , vMCYByEvent , vMCZByEvent , vNoFByEvent);
   NCluster = vCluster.size();
 
+  int NEmpty_cluster = 0;
   for( int j = 0 ; j < NCluster ; j++ )
   {
     // Filling tree variables
     if ( vCluster[j].Npoint == 0) 
     {
-      NCluster += -1; 
+      NEmpty_cluster += 1; 
       if( LogLevel > 4) std::cout << "no point in cluster " << j << std::endl;
       continue;
     }
@@ -1065,6 +1066,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vMCGenTagCluster.insert( vMCGenTagCluster.end()    , (vCluster[j].vMCGenTag).begin() , (vCluster[j].vMCGenTag).end() );
   }
 
+  NCluster = NCluster - NEmpty_cluster;
   // veto part
 
   auto const tracklist = e.getValidHandle<vector<recob::Track>>(fTrackLabel);
