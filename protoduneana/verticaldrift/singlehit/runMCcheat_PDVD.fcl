@@ -1,8 +1,6 @@
 #include "services_dune.fcl"
 #include "services_vdcoldbox.fcl" 
-#include "SingleHitParameters.fcl"
-
-#include "tools_dune.fcl" 
+#include "tools_dune.fcl"	
 
 process_name: SingleHit
 
@@ -14,22 +12,19 @@ source:
 
 services:
 {
-  TFileService: { fileName: "singleHitOutput.root" }
+  TFileService: { fileName: "MCsingleHitOutput.root" }
   
-  TimeTracker:           @local::dune_time_tracker
-  MemoryTracker:         @local::dune_memory_tracker
-  RandomNumberGenerator: {} #ART native random number generator
+  TimeTracker:                    @local::dune_time_tracker
+  MemoryTracker:                  @local::dune_memory_tracker
+  RandomNumberGenerator:          {} #ART native random number generator
    
-  #FileCatalogMetadata:  @local::art_file_catalog_mc
-  #                      @table::vdcb_crp2_services
-  #                      @table::vdcb_dataprep_base_services
-  #                      @table::vdcb_sim_base_services
   ExptGeoHelperInterface:         @local::dune_geometry_helper
   DetectorPropertiesService:      @local::protodunevd_detproperties
   FileCatalogMetadata:            @local::art_file_catalog_mc
                                   @table::protodunevd_reco_services
   LArPropertiesService:           @local::dunefd_properties
-
+  IFDH:                           {}
+  #CalibrationServices:            @local::CalorimetryParameters_SPProd4_MC_SCE
 }
 
 services.Geometry.Name: "protodunevd_v4"
@@ -40,12 +35,18 @@ physics:
 {
   analyzers:
   {
-    ana:@Local::SingleHitParams
+    ana:
+    {
+      module_type: "MCsingleHitCheater"
+      LogLevel:     5
+
+      HitLabel:                   "hitpdune"
+      G4Label:                    "largeant"
+
+    }
   }
 
   analysis: [ ana ]
   end_paths: [ analysis ]
 }
-
-physics.analyzers.ana.IsPDVD: true
 
