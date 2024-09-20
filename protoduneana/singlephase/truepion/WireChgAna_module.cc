@@ -158,7 +158,7 @@ void pdsp::WireChgAna::analyze(art::Event const& e)
       int wire = hit.WireID().Wire;
       int plane = hit.WireID().Plane;
       hitchg[plane][wire] += hit.Integral();
-      hitsumadc[plane][wire] += hit.SummedADC();
+      hitsumadc[plane][wire] += hit.ROISummedADC();
     }
   }
 
