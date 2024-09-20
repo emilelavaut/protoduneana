@@ -183,7 +183,7 @@ private:
 
   // space point information
   string                 fSpointModuleLabel;
-  unsigned int           fNSpoints;
+  //unsigned int           fNSpoints;
 
   // hit information
   string                 fHitModuleLabel;

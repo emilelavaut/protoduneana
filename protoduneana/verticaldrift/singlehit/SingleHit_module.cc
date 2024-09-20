@@ -235,7 +235,7 @@ private:
   float fNumberConvStep;
   float fCovering;
 
-  float fCalibration;
+  //float fCalibration;
 
   // geometry
   const geo::Geometry* fGeom;
@@ -2206,7 +2206,7 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
 
 std::vector<std::string> pdvdana::SingleHit::GetGeneratorTag( art::Event const &e , std::string fG4Label , int LogLevel , art::ServiceHandle<cheat::BackTrackerService> bt_serv )
 {
-    int MCPartcounter = 0;
+    //int MCPartcounter = 0;
     std::vector<std::pair<int, std::string>> vTrackIdToLabelPair;
 
     // get all MC truth object
@@ -2222,7 +2222,7 @@ std::vector<std::string> pdvdana::SingleHit::GetGeneratorTag( art::Event const &
       art::FindManyP<simb::MCParticle> MCTruthsToMCParticles( mcTruth , e , fG4Label );
       std::vector<art::Ptr<simb::MCParticle>> mcParts = MCTruthsToMCParticles.at(0);
 
-      MCPartcounter += (int) mcParts.size();
+      //MCPartcounter += (int) mcParts.size();
 
       for (const art::Ptr<simb::MCParticle> ptr : mcParts)
       {
