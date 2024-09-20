@@ -354,7 +354,7 @@ void pdvdana::FitdQdx::analyze(art::Event const& e)
           ////////////////
 
           float pitch  = GetPitch(track, Hits[hit_index], thms[hit_index]);
-          float charge = Hits[hit_index]->SummedADC() / fADCtoEl / fEltofC;
+          float charge = Hits[hit_index]->ROISummedADC() / fADCtoEl / fEltofC;
 
           // Retrieve (x,y,z) point coordinates
           float fX = track.LocationAtPoint(tms_index).X();

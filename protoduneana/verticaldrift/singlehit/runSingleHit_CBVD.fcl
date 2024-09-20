@@ -15,7 +15,7 @@
 #include "opticaldetectormodules_dune.fcl"
 #include "dataprep_dune.fcl"
 #include "SpacePointSolver_dune.fcl"
-
+#include "SingleHitParameters.fcl" 
 
 #include "channelstatus_vdcb.fcl"
 #include "channelstatus_vdct.fcl"
@@ -48,26 +48,7 @@ physics:
 {
   analyzers:
   {
-    ana:
-    {
-      module_type: "SingleHit"
-      LogLevel:     5
-
-      SpacePointLabel:   "reco3d"
-      ClusterLabel:      "pandora"
-      TrackLabel:        "pandoroTrack"
-      HitLabel:          "gaushit"
-
-      ChannelWindowInt:     1
-      ChannelWindowExt:     2
-      HitMultiplicity:      3
-      PeakTimeWindowInt:    20
-      PeakTimeWindowExt:    20
-      CoincidenceWindow:    10
-      Pitch:                0.9 #in cm
-      PitchMultiplier:      1.2
-      tagPD:                0 
-    }
+    ana:@Local::SingleHitParams
   }
 
   analysis: [ ana ]

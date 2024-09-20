@@ -355,7 +355,7 @@ void pddpana::GetAnodeCathodePulses::analyze(art::Event const& e)
             if(Hits[hit_index]->GoodnessOfFit() > 1)                      continue;
 
             float pitch  = GetPitch(track, Hits[hit_index], thms[hit_index]);
-            float charge = Hits[hit_index]->SummedADC() * e_charge/calarea;
+            float charge = Hits[hit_index]->ROISummedADC() * e_charge/calarea;
             fDqdx[plane_i] += charge/pitch;
 
             vector<float> wire_signal = Wires->at(chan_i).Signal();
