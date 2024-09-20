@@ -538,7 +538,7 @@ void pdvdana::ColdboxTrackStudy::analyze(art::Event const& evt)
     fHitPeakTimeSigma.push_back(hit.SigmaPeakTime()) ;
     fHitIntegral.push_back(hit.Integral()) ;
     fHitIntegralSigma.push_back(hit.SigmaIntegral()) ;
-    fHitSummedADC.push_back(hit.SummedADC()) ;
+    fHitSummedADC.push_back(hit.ROISummedADC()) ;
     fHitPeakAmplitude.push_back(hit.PeakAmplitude()) ;
     fHitPeakAmplitudeSigma.push_back(hit.SigmaPeakAmplitude()) ;
     fHitRMS.push_back(hit.RMS()) ;
@@ -654,7 +654,7 @@ void pdvdana::ColdboxTrackStudy::analyze(art::Event const& evt)
       fTrackHitPeakTimeSigma.push_back(trackHits[i_hit] -> SigmaPeakTime()) ;
       fTrackHitIntegral.push_back(trackHits[i_hit] -> Integral()) ;
       fTrackHitIntegralSigma.push_back(trackHits[i_hit] -> SigmaIntegral()) ;
-      fTrackHitSummedADC.push_back(trackHits[i_hit] -> SummedADC()) ;
+      fTrackHitSummedADC.push_back(trackHits[i_hit] -> ROISummedADC()) ;
       fTrackHitPeakAmplitude.push_back(trackHits[i_hit] -> PeakAmplitude()) ;
       fTrackHitPeakAmplitudeSigma.push_back(trackHits[i_hit] -> SigmaPeakAmplitude()) ;
       fTrackHitRMS.push_back(trackHits[i_hit] -> RMS()) ;
@@ -663,7 +663,7 @@ void pdvdana::ColdboxTrackStudy::analyze(art::Event const& evt)
       fTrackHitLocalIndex.push_back(trackHits[i_hit] -> LocalIndex()) ;
 
       // Print hit information to screen
-      if( fLogLevel >= 5 )       std::cout << "- Hit " << i_hit << ": " << " plane = " << trackHits[i_hit] -> View() << " ; signal type = " << trackHits[i_hit] -> SignalType() << " ; channel = " << trackHits[i_hit] -> Channel() << " ; wire ID = " << trackHits[i_hit] -> WireID() << " ; start tick = " << trackHits[i_hit] -> StartTick() << " ; end tick = " << trackHits[i_hit] -> EndTick() << " ; peak time = " << trackHits[i_hit] -> PeakTime() << " +/- " << trackHits[i_hit] -> SigmaPeakTime() << " tick units "<< " ; integral = " << trackHits[i_hit] -> Integral() << " +/- " << trackHits[i_hit] -> SigmaIntegral() << " tick x ADC units"<< " ; summed ADC = " << trackHits[i_hit] -> SummedADC() << " ; peak amplitude = " << trackHits[i_hit] -> PeakAmplitude() << " +/- " << trackHits[i_hit] -> SigmaPeakAmplitude() << " ADC units"<< " ; multiplicity = " << trackHits[i_hit] -> Multiplicity() << " ; goodness of fit = " << trackHits[i_hit] -> GoodnessOfFit() << " ; local index = " << trackHits[i_hit] -> LocalIndex() << std::endl ;
+      if( fLogLevel >= 5 )       std::cout << "- Hit " << i_hit << ": " << " plane = " << trackHits[i_hit] -> View() << " ; signal type = " << trackHits[i_hit] -> SignalType() << " ; channel = " << trackHits[i_hit] -> Channel() << " ; wire ID = " << trackHits[i_hit] -> WireID() << " ; start tick = " << trackHits[i_hit] -> StartTick() << " ; end tick = " << trackHits[i_hit] -> EndTick() << " ; peak time = " << trackHits[i_hit] -> PeakTime() << " +/- " << trackHits[i_hit] -> SigmaPeakTime() << " tick units "<< " ; integral = " << trackHits[i_hit] -> Integral() << " +/- " << trackHits[i_hit] -> SigmaIntegral() << " tick x ADC units"<< " ; summed ADC = " << trackHits[i_hit] -> ROISummedADC() << " ; peak amplitude = " << trackHits[i_hit] -> PeakAmplitude() << " +/- " << trackHits[i_hit] -> SigmaPeakAmplitude() << " ADC units"<< " ; multiplicity = " << trackHits[i_hit] -> Multiplicity() << " ; goodness of fit = " << trackHits[i_hit] -> GoodnessOfFit() << " ; local index = " << trackHits[i_hit] -> LocalIndex() << std::endl ;
             
 
     } // end of loop over track hits
