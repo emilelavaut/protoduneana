@@ -414,7 +414,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     fPlane                = hit.WireID().Plane;
     fHitWidth             = hit.EndTick() - hit.StartTick();
 
-    fEnergy         = hit.SummedADC();///fADCtoEl;
+    fEnergy         = hit.ROISummedADC();///fADCtoEl;
     fPeakTime       = hit.PeakTime();//*ftick_in_mus;
     fSigmaPeakTime  = hit.SigmaPeakTime();//*ftick_in_mus;
     fRMS            = hit.RMS();
@@ -934,7 +934,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
 
       WireInd1.push_back(hit.WireID());
       ChannelInd1.push_back(hit.Channel());
-      EInd1.push_back(hit.SummedADC());
+      EInd1.push_back(hit.ROISummedADC());
       PTInd1.push_back(PeakTime);
       continue;
     }
@@ -944,7 +944,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
 
       WireInd2.push_back(hit.WireID());
       ChannelInd2.push_back(hit.Channel());
-      EInd2.push_back(hit.SummedADC());
+      EInd2.push_back(hit.ROISummedADC());
       PTInd2.push_back(PeakTime);
     }
   }

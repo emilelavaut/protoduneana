@@ -340,7 +340,7 @@ void pddpana::CosmicsdQdx::analyze(art::Event const& e)
 	}
 
 	// hit properties
-	fHitAdcSum   = hit->SummedADC();
+	fHitAdcSum   = hit->ROISummedADC();
 	fHitIntegral = hit->Integral();
 	fHitPeak     = hit->PeakAmplitude();
 	fHitTime     = hit->PeakTime();
@@ -504,12 +504,12 @@ bool pddpana::CosmicsdQdx::checkTrackHitInfo( const recob::Track& track, art::Ev
   // charge in view 0
   double v0 = 0;
   for( auto const &h: fPlaneHits[0] ){
-    v0 += h->SummedADC();
+    v0 += h->ROISummedADC();
   }
   // charge in view 1
   double v1 = 0;
   for( auto const &h: fPlaneHits[1] ){
-    v1 += h->SummedADC();
+    v1 += h->ROISummedADC();
   }
   // charge asymmetry
   fQAsym = (v0 - v1)/(v0 + v1);
