@@ -452,8 +452,12 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
 
   //Get DAQ Time Stamp
-  auto const& rdts = *e.getValidHandle<vector<raw::RDTimeStamp>>(fRDTLabel);
-  CRP_T0 = rdts[0].GetTimeStamp();
+  if ( e.isRealData())
+  {
+    auto const& rdts = *e.getValidHandle<vector<raw::RDTimeStamp>>(fRDTLabel);
+    CRP_T0 = rdts[0].GetTimeStamp();
+  }
+  else CRP_T0 = 0;
   
   //retrieve map trackID MC particle to genrator tag
   std::vector<std::string> vTrackIDToGeneratorTag;
@@ -698,7 +702,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     }    
 
 
-    fEnergy         = hit.ROISummedADC();///fADCtoEl;
+    fEnergy         = hit.SummedADC();///fADCtoEl;
     fPeakTime       = hit.PeakTime();//*ftick_in_mus;
     fSigmaPeakTime  = hit.SigmaPeakTime();//*ftick_in_mus;
     fRMS            = hit.RMS();
@@ -1473,7 +1477,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
 
       WireInd1.push_back(hit.WireID());
       ChannelInd1.push_back(hit.Channel());
-      EInd1.push_back(hit.ROISummedADC());
+      EInd1.push_back(hit.SummedADC());
       PTInd1.push_back(PeakTime);
       continue;
     }
@@ -1483,7 +1487,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
 
       WireInd2.push_back(hit.WireID());
       ChannelInd2.push_back(hit.Channel());
-      EInd2.push_back(hit.ROISummedADC());
+      EInd2.push_back(hit.SummedADC());
       PTInd2.push_back(PeakTime);
     }
   }
@@ -1638,8 +1642,15 @@ std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYP
 
   if (vYPoint.size() != vZPoint.size())  throw std::invalid_argument( "BIG PROBLEM" );
 
-
   std::vector<int> vIso;
+  vIso.clear();
+
+  if (radiusInt >= radiusExt) 
+  {
+    if (LogLevel > 4) std::cout << " Size of DONUT NON PHYSIQUE " << std::endl;   
+    return vIso;
+  }
+  
   int npoint = vYPoint.size();
   std::vector<int> vIsIsolated( npoint , -1 );
 
@@ -1672,7 +1683,7 @@ std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYP
 
       float d = GetDist( xIs , yIs , zIs , x , y , z );
 
-      if (( d > radiusInt)&&( d < radiusInt + radiusExt))
+      if (( d > radiusInt)&&( d < radiusExt))
       {
         flag = false;
         indic = i;
