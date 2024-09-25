@@ -702,7 +702,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     }    
 
 
-    fEnergy         = hit.SummedADC();///fADCtoEl;
+    fEnergy         = hit.ROISummedADC();///fADCtoEl;
     fPeakTime       = hit.PeakTime();//*ftick_in_mus;
     fSigmaPeakTime  = hit.SigmaPeakTime();//*ftick_in_mus;
     fRMS            = hit.RMS();
