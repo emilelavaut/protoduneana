@@ -409,7 +409,7 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob(clockData);
   
-  fTickTimeInMus      = sampling_rate(clockData);
+  fTickTimeInMus      = sampling_rate(clockData)/1000; //caution sampling_rate(clockData) is in ns
   fCoincidenceWd      = fCoincidenceWd/fTickTimeInMus;      // in tt
   fTimePlane1ToPlane2 = fTimePlane1ToPlane2/fTickTimeInMus; // in tt
 
@@ -1658,7 +1658,7 @@ std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYP
   {
     float zIs = vZPoint[k];
     float yIs = vYPoint[k];
-    float xIs = vPeakTimeCol[k]/fElectronVelocity/fTickToMus;
+    float xIs = vPeakTimeCol[k]*fElectronVelocity/fTickToMus;
 
     int i = 0;
     bool flag = true;
@@ -1679,7 +1679,7 @@ std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYP
     {
       float y = vYPoint[i];
       float z = vZPoint[i];
-      float x = vPeakTimeCol[i]/fElectronVelocity/fTickToMus;
+      float x = vPeakTimeCol[i]*fElectronVelocity/fTickToMus;
 
       float d = GetDist( xIs , yIs , zIs , x , y , z );
 
