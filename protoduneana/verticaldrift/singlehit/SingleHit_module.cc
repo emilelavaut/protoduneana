@@ -25,7 +25,7 @@
 #include "larcore/CoreUtils/ServiceUtil.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/ServicePack.h" 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Track.h"
 #include "lardataobj/RecoBase/TrackHitMeta.h"
@@ -210,8 +210,16 @@ private:
   std::string fG4Label;
   std::string fRDTLabel;
 
+  // geometry 
+  const geo::WireReadoutGeom& fWireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
+
+  int fChannelWdInt;
+  int fChannelWdExt;
+  int fMultiplicity;
+
+  float fPeakTimeWdInt;
+  float fPeakTimeWdExt;
   int   LogLevel;
-  int   fMultiplicity;
   float fTickTimeInMus;
 
   float fRadiusInt;
@@ -1543,8 +1551,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
       ++ch1;
       continue ;
     }
-
-    drap = fGeom->WireIDsIntersect( WireCol , elementInd1 , point);
+    drap = fWireReadout.WireIDsIntersect( WireCol , elementInd1 , point);
     if ( drap )
     {
       YInd1.push_back(point.Y());
@@ -1572,7 +1579,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
       ++ch2; 
       continue ;
     }
-    drap = fGeom->WireIDsIntersect( WireCol , elementInd2 , point);
+    drap = fWireReadout.WireIDsIntersect( WireCol , elementInd2 , point);
     if ( drap ) 
     { 
       YInd2.push_back(point.Y());
