@@ -1530,7 +1530,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   bool drap;
 
   double y = -999. , z = -999.;
-  auto const wcol = fGeom->WireEndPoints(WireCol);
+  auto const wcol = fWireReadout.WireEndPoints(WireCol);
 
   std::list<int>::iterator ch1  = ChInd1.begin();
   for (auto const elementInd1 : WireInd1)
@@ -1538,7 +1538,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
     if (WireCol.TPC != elementInd1.TPC )
     {
       
-      auto const wind1 = fGeom->WireEndPoints(elementInd1);
+      auto const wind1 = fWireReadout.WireEndPoints(elementInd1);
       bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
       if (flag)
       {
@@ -1565,7 +1565,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   { 
     if (WireCol.TPC != elementInd2.TPC )
     { 
-      auto const wind2 = fGeom->WireEndPoints(elementInd2);
+      auto const wind2 = fWireReadout.WireEndPoints(elementInd2);
       bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
       if (flag)
       {
