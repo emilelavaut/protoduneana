@@ -1,7 +1,9 @@
 #include "services_dune.fcl"
 #include "services_vdcoldbox.fcl" 
+#include "SingleHitParameters.fcl" 
 
-#include "tools_dune.fcl"	
+#include "tools_dune.fcl" 
+
 process_name: SingleHit
 
 source:
@@ -33,25 +35,7 @@ physics:
 {
   analyzers:
   {
-    ana:
-    {
-      module_type: "SingleHit"
-      LogLevel:     5
-
-      SpacePointLabel:   "reco3d"
-      ClusterLabel:      "pandora"
-      TrackLabel:        "pandoroTrack"
-      HitLabel:          "gaushit"
-
-      ChannelWindowInt:     1
-      ChannelWindowExt:     2
-      HitMultiplicity:      3
-      PeakTimeWindowInt:    20
-      PeakTimeWindowExt:    20
-      CoincidenceWindow:    10
-      Pitch:                0.9 #in cm
-      PitchMultiplier:      1.2
-    }
+    ana:@Local::SingleHitParams
   }
 
   analysis: [ ana ]

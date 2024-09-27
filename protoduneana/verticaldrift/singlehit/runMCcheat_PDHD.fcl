@@ -1,10 +1,7 @@
-##with PROLOG
-#include "services_dune.fcl"       
-#include "ProtoDUNECalibration.fcl" 
-#include "SingleHitParameters.fcl" 	
-
-##without PROLOG
-#include "tools_dune.fcl"           
+#include "services_dune.fcl"
+#include "services_vdcoldbox.fcl" 
+#include "ProtoDUNECalibration.fcl"
+#include "tools_dune.fcl"	
 
 process_name: SingleHit
 
@@ -16,7 +13,7 @@ source:
 
 services:
 {
-  TFileService: { fileName: "singleHitOutput.root" }
+  TFileService: { fileName: "MCsingleHitOutput.root" }
   
   TimeTracker:                    @local::dune_time_tracker
   MemoryTracker:                  @local::dune_memory_tracker
@@ -37,15 +34,30 @@ services.Geometry.Name: "protodunehdv6"
 services.Geometry.GDML: "protodunehd_v6_refactored.gdml"
 services.Geometry.ROOT: "protodunehd_v6_refactored.gdml"
 
-
 physics:
 {
   analyzers:
   {
-    ana:@local::SingleHitParams
+    ana:
+    {
+      module_type: "MCsingleHitCheater"
+      LogLevel:     5
+
+      HitLabel:                   "hitpdune"
+      G4Label:                    "largeant"
+      GeneratorTag:               [ "cosmicgenerator" ,
+                                    "generator"       ,
+                                    "ar39"            ,
+                                    "kr85"            ,
+                                    "rn222"           
+                                  ]
+
+      HitLabel:          "hitpdune"
+
+    }
   }
 
   analysis: [ ana ]
   end_paths: [ analysis ]
 }
-physics.analyzers.ana.IsPDHD: true
+

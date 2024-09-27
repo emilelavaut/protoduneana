@@ -319,46 +319,46 @@ void pddpana::CosmicsdQdx::analyze(art::Event const& e)
       //
       // from calo::TrackCalorimetryAlg::AnalyzeHit
       for(auto const &hit: hits ){
-        //skip high mulitplicity hits
-        if(hit->Multiplicity() > (int)fMaxHitMultiplicity) continue;
+	//skip high mulitplicity hits
+	if(hit->Multiplicity() > (int)fMaxHitMultiplicity) continue;
+	
+	//
+	size_t traj_iter = std::distance( traj_points_in_plane.begin(),
+					  std::min_element( traj_points_in_plane.begin(), 
+							    traj_points_in_plane.end(),
+							    dist_projected(hit, fWireReadoutGeom) ) );
+	size_t traj_pnt_idx = traj_points_idx[traj_iter];
+	try{
+	  // fGeom->View(hit->WireID().Plane) always returns 3 (geo::kY) for some reason
+	  //fPitch = lar::util::TrackPitchInView(track, fGeom->View(hit->WireID().Plane), traj_pnt_idx);
+	  fPitch = lar::util::TrackPitchInView(track, hit->View(), traj_pnt_idx);
+	}
+	catch(cet::exception &e){
+	  if( fLogLevel>=3 ){
+	    cout<<e;
+	  }
+	  continue;
+	}
 
-        //
-        size_t traj_iter = std::distance( traj_points_in_plane.begin(),
-                                          std::min_element( traj_points_in_plane.begin(),
-                                                            traj_points_in_plane.end(),
-                                                            dist_projected(hit, fWireReadoutGeom) ) );
-        size_t traj_pnt_idx = traj_points_idx[traj_iter];
-        try{
-          // fGeom->View(hit->WireID().Plane) always returns 3 (geo::kY) for some reason
-          //fPitch = lar::util::TrackPitchInView(track, fGeom->View(hit->WireID().Plane), traj_pnt_idx);
-          fPitch = lar::util::TrackPitchInView(track, hit->View(), traj_pnt_idx);
-        }
-        catch(cet::exception &e){
-          if( fLogLevel>=3 ){
-            cout<<e;
-          }
-          continue;
-        }
+	// hit properties
+	fHitAdcSum   = hit->ROISummedADC();
+	fHitIntegral = hit->Integral();
+	fHitPeak     = hit->PeakAmplitude();
+	fHitTime     = hit->PeakTime();
+	fdQdx        = fHitAdcSum / fPitch;
 
-        // hit properties
-        fHitAdcSum   = hit->SummedADC();
-        fHitIntegral = hit->Integral();
-        fHitPeak     = hit->PeakAmplitude();
-        fHitTime     = hit->PeakTime();
-        fdQdx        = fHitAdcSum / fPitch;
+	auto pnt = track.LocationAtPoint(traj_iter);
+	fX = pnt.X();
+	fY = pnt.Y();
+	fZ = pnt.Z();
 
-        auto pnt = track.LocationAtPoint(traj_iter);
-        fX = pnt.X();
-        fY = pnt.Y();
-        fZ = pnt.Z();
-
-        // if( fEventNum == 11540 && fTrackId == 0 ){
-        //   auto dir1 = track.DirectionAtPoint(traj_iter);
-        //   cout<<i_plane<<" "<<fPitch<<" "<<fX<<" "<<fY<<" "<<fZ<<" "
-        //       <<dir1.X()<<" "<<dir1.Y()<<" "<<dir1.Z()<<endl;
-        //}
-
-        fTree->Fill();
+	// if( fEventNum == 11540 && fTrackId == 0 ){
+	//   auto dir1 = track.DirectionAtPoint(traj_iter);
+	//   cout<<i_plane<<" "<<fPitch<<" "<<fX<<" "<<fY<<" "<<fZ<<" "
+	//       <<dir1.X()<<" "<<dir1.Y()<<" "<<dir1.Z()<<endl;
+	//}
+	
+	fTree->Fill();
       }// loop over track plane hits
 
     }// end plane loop
@@ -505,12 +505,12 @@ bool pddpana::CosmicsdQdx::checkTrackHitInfo( const recob::Track& track, art::Ev
   // charge in view 0
   double v0 = 0;
   for( auto const &h: fPlaneHits[0] ){
-    v0 += h->SummedADC();
+    v0 += h->ROISummedADC();
   }
   // charge in view 1
   double v1 = 0;
   for( auto const &h: fPlaneHits[1] ){
-    v1 += h->SummedADC();
+    v1 += h->ROISummedADC();
   }
   // charge asymmetry
   fQAsym = (v0 - v1)/(v0 + v1);
