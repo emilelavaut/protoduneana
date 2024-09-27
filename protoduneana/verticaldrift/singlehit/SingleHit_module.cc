@@ -299,7 +299,7 @@ private:
 
   void GetSingle(art::Event const & ev, std::string HitLabel, std::list<int> & index_list_single, int const Multiplicity);
 
-  void GetTimeIsolation(art::Event const & ev, std::string HitLabel, float const PeakTimeWdInt, float const PeakTimeWdExt, std::list<int> & index_list_single, std::list<int> & index_listIsolatedlated);
+  void GetTimeIsolation(art::Event const & ev, std::string HitLabel, float const PeakTimeWdInt, float const PeakTimeWdExt, std::list<int> & index_list_single, std::list<int> & index_listIsolated);
 
   void GetListOfTimeCoincidenceHit(art::Event const & ev, std::string HitLabel, const float CoincidenceWd, float const TimeInd1ToInd2, const recob::Hit & HitCol,
                                                                                   std::list<geo::WireID> & WireInd1,
@@ -1380,10 +1380,10 @@ void pdvdana::SingleHit::GetSingle(art::Event const & ev, std::string HitLabel, 
   } 
 }
 
-void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string HitLabel, float const PeakTimeWdInt, float const PeakTimeWdExt,  std::list<int> & index_list_single, std::list<int> & index_listIsolatedlated)
+void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string HitLabel, float const PeakTimeWdInt, float const PeakTimeWdExt,  std::list<int> & index_list_single, std::list<int> & index_listIsolated)
 {
   auto const hitlist = ev.getValidHandle<vector<recob::Hit>>(HitLabel);
-  index_listIsolatedlated = index_list_single;
+  index_listIsolated = index_list_single;
 
   recob::Hit hit = hitlist->at(0);
   float PeakTime = -999;
@@ -1394,7 +1394,7 @@ void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string Hit
   float PeakTimeMinExt     = -999;
   float PeakTimeMaxExt     = -999;
    
-  if(not( index_listIsolatedlated.empty()))
+  if(not( index_listIsolated.empty()))
   {
     for (int i=0, sz=hitlist->size(); i!=sz; ++i)
     {
@@ -1407,9 +1407,9 @@ void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string Hit
       PeakTimeMinExt     = -999;
       PeakTimeMaxExt     = -999;
 
-      std::list<int>::iterator elem = index_listIsolatedlated.begin();
+      std::list<int>::iterator elem = index_listIsolated.begin();
 
-      while( elem != index_listIsolatedlated.end())
+      while( elem != index_listIsolated.end())
       {
         PeakTimeSingle  = (hitlist->at(*elem)).PeakTime();
       
@@ -1423,7 +1423,7 @@ void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string Hit
         {
           if (i != *elem) //normally always true now
           {
-            elem = index_listIsolatedlated.erase(elem);
+            elem = index_listIsolated.erase(elem);
           }
         }
         ++elem;
@@ -1457,7 +1457,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
   float PeakTimeCol    = HitCol.PeakTime();
   float RMSPeakTimeCol = HitCol.RMS();
 
-  float EndTime    = PeakTimeCol + RMSPeakTimeCol/2;
+  float EndTime    = PeakTimeCol;// + RMSPeakTimeCol/2;
   float StartTime1 = PeakTimeCol - CoincidenceWd;
   float StartTime2 = PeakTimeCol - CoincidenceWd + TimeInd1ToInd2;
 
@@ -1531,7 +1531,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   std::list<int>::iterator ch1  = ChInd1.begin();
   for (auto const elementInd1 : WireInd1)
   {
-    if (WireCol.TPC != elementInd1.TPC )
+    if (WireCol.TPC != elementInd1.TPC ) && (bIsPDVD)
     {
       
       auto const wind1 = fGeom->WireEndPoints(elementInd1);
@@ -1560,7 +1560,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   std::list<int>::iterator ch2  = ChInd2.begin();
   for (auto const elementInd2 : WireInd2)
   { 
-    if (WireCol.TPC != elementInd2.TPC )
+    if (WireCol.TPC != elementInd2.TPC ) && (bIsPDVD)
     { 
       auto const wind2 = fGeom->WireEndPoints(elementInd2);
       bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
