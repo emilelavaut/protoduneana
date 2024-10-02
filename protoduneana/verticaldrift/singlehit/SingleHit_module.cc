@@ -183,6 +183,9 @@ private:
   // Cluster Tree Variables
   int NCluster;
 
+  std::vector<float> vY_point;
+  std::vector<float> vZ_point;
+
   std::vector<float> vZCluster;
   std::vector<float> vYCluster;
   std::vector<float> vEColCluster;
@@ -336,7 +339,8 @@ private:
 
   // CLUSTER FUNCTIONS
   point gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ );
-  
+  point gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ , std::vector<float> &vYpoint , std::vector<float> &vZpoint);
+
   float dist2(point a, point b);
 
   float randf(float m);
@@ -1006,7 +1010,15 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   std::cout << " THERE ARE " << PTSIsolated << " ISOLATED POINTS IN EVENT " << fEventID << std::endl;
   }
 
+  if (LogLevel > 2)
+  {
+    vY_point.clear();
+    vZ_point.clear();
+    point v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent , vY_point , vZ_point);
+  }
+	
   point v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
+
 
   std::vector<std::vector<float> > dataPos = GetData(PTSIsolated,v);
   std::vector<std::vector<float> > clustersPos;
@@ -1324,7 +1336,11 @@ void pdvdana::SingleHit::beginJob()
   tClusterTree->Branch("MCParticleY"        , &vMCYCluster      );
   tClusterTree->Branch("MCParticleZ"        , &vMCZCluster      );
   tClusterTree->Branch("HitGenerationTag"   , &vMCGenTagCluster );
-
+  if (LogLevel > 2)
+  {
+    tClusterTree->Branch("Y_isolated_point" , &vY_point          );
+    tClusterTree->Branch("Z_isolated_point" , &vZ_point          );
+  }
   if (bVetoTrack)
   {
     tClusterTree->Branch("VetoTrackStartX"    , &vVetoTrackStartX );
@@ -1770,6 +1786,31 @@ point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vecto
 
   return pt;
 }
+
+point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ , std::vector<float> &vYpoint , std::vector<float> &vZpoint)
+{
+  int i = 0;
+  point p, pt = (point) malloc(sizeof(point_t) * size);
+
+  std:vector<float> vy;
+  std::vector<float> vz;
+	
+  for (p = pt + size; p-- > pt;)
+  {
+    p->z = vZ[vIndex[i]];
+    p->y = vY[vIndex[i]];
+    vy.push_back(vY[vIndex[i]]);
+    vz.push_back(vZ[vIndex[i]]);
+	  
+    p->index = vIndex[i];
+    i++;
+  }
+
+  vYpoint = vy;
+  vZpoint = vz;
+  return pt;
+}
+
 
 int pdvdana::SingleHit::nearest(point pt, point cent, int n_cluster, float *d2)
 {
