@@ -1017,7 +1017,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     vZ_point.clear();
     v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent , vY_point , vZ_point);
   }
-  else  v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
+  else	v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
 
 
   std::vector<std::vector<float> > dataPos = GetData(PTSIsolated,v);
@@ -1577,18 +1577,21 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   std::list<int>::iterator ch1  = ChInd1.begin();
   for (auto const elementInd1 : WireInd1)
   {
-    if ((WireCol.TPC != elementInd1.TPC) && (bIsPDVD))
+    if (WireCol.TPC != elementInd1.TPC)
     {
-      
-      auto const wind1 = fGeom->WireEndPoints(elementInd1);
-      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
-      if (flag)
-      {
-	YInd1.push_back(y);
-        ZInd1.push_back(z);
-	ChIntersectInd1.push_back(*ch1);
-	++ch1;
-	continue;
+    
+      if (bIsPDVD)
+      {  
+        auto const wind1 = fGeom->WireEndPoints(elementInd1);
+        bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+        if (flag)
+        {
+	  YInd1.push_back(y);
+          ZInd1.push_back(z);
+	  ChIntersectInd1.push_back(*ch1);
+	  ++ch1;
+	  continue;
+        }
       }
       ++ch1;
       continue ;
@@ -1608,17 +1611,20 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   { 
     if ((WireCol.TPC != elementInd2.TPC ) && (bIsPDVD))
     { 
-      auto const wind2 = fGeom->WireEndPoints(elementInd2);
-      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
-      if (flag)
-      {
-        YInd2.push_back(y);
-        ZInd2.push_back(z);
-        ChIntersectInd2.push_back(*ch2);
-        ++ch2;
-        continue;
-      }
 
+      if (bIsPDVD)
+      {
+        auto const wind2 = fGeom->WireEndPoints(elementInd2);
+        bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+        if (flag)
+        {
+          YInd2.push_back(y);
+          ZInd2.push_back(z);
+          ChIntersectInd2.push_back(*ch2);
+          ++ch2;
+          continue;
+        }
+      }
       ++ch2; 
       continue ;
     }
@@ -1741,15 +1747,11 @@ std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYP
     {
       vIsIsolated[k] = 1;
       vIso.push_back(k);
-
-      continue;
     }
     else
     {
       vIsIsolated[k] = 0;
       vIsIsolated[indic] = 0;
-
-      continue;
     }
   }
 
@@ -1795,6 +1797,7 @@ point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vecto
   std::vector<float> vy;
   std::vector<float> vz;
 	
+  std::cout << "number of isolated point at creation " << size << std::endl;
   for (p = pt + size; p-- > pt;)
   {
     p->z = vZ[vIndex[i]];
@@ -1806,6 +1809,7 @@ point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vecto
     i++;
   }
 
+  std::cout << "number of isolated point in vector " << vYpoint.size() << std::endl;
   vYpoint = vy;
   vZpoint = vz;
   return pt;
