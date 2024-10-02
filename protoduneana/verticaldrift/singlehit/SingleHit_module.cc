@@ -1484,7 +1484,8 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
   float PeakTimeCol    = HitCol.PeakTime();
   //float RMSPeakTimeCol = HitCol.RMS();
 
-  float EndTime    = PeakTimeCol;// + RMSPeakTimeCol/2;
+  float EndTime1   = PeakTimeCol + CoincidenceWd;
+  float EndTime2   = PeakTimeCol + CoincidenceWd - TimeInd1ToInd2;
   float StartTime1 = PeakTimeCol - CoincidenceWd;
   float StartTime2 = PeakTimeCol - CoincidenceWd + TimeInd1ToInd2;
 
@@ -1500,7 +1501,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
     PeakTime = hit.PeakTime();
     if (Plane == 0)
     {
-      if ((PeakTime < StartTime1)||(PeakTime > EndTime)) continue;
+      if ((PeakTime < StartTime1)||(PeakTime > EndTime1)) continue;
 
       WireInd1.push_back(hit.WireID());
       ChannelInd1.push_back(hit.Channel());
@@ -1511,7 +1512,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
     }
     if (Plane == 1)
     {
-      if ((PeakTime < StartTime2)||(PeakTime > EndTime)) continue;
+      if ((PeakTime < StartTime2)||(PeakTime > EndTime2)) continue;
 
       WireInd2.push_back(hit.WireID());
       ChannelInd2.push_back(hit.Channel());
