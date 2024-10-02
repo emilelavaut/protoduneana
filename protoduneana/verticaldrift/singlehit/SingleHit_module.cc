@@ -151,6 +151,7 @@ private:
   std::list<float>         lYInd1;
   std::list<float>         lZInd1;
   std::list<int>           lChIntersectInd1;
+  std::list<float>         lEIntersectInd1;
 
   std::list<geo::WireID>   lWireInd2; //working variable
   std::list<int>           lChannelInd2;
@@ -160,6 +161,7 @@ private:
   std::list<float>         lYInd2;
   std::list<float>         lZInd2;
   std::list<int>           lChIntersectInd2;
+  std::list<float>         lEIntersectInd2;
 
   std::list<float> lYPoint;
   std::list<float> lZPoint;
@@ -320,12 +322,12 @@ private:
 
   void GetListOfCrossingChannel( float Ymin , float Ymax , float Zmin , float Zmax ,
 		              geo::WireID & WireCol , std::list<geo::WireID> & WireInd1 , std::list<geo::WireID> & WireInd2 ,
-                              std::list<int>  & ChInd1 , std::list<float> & YInd1 , std::list<float> & ZInd1 , std::list<int>  & ChIntersectInd1 ,
-                              std::list<int>  & ChInd2 , std::list<float> & YInd2 , std::list<float> & ZInd2 , std::list<int>  & ChIntersectInd2 );
+                              std::list<int>  & ChInd1 , std::list<float> & EInd1 , std::list<float> & YInd1 , std::list<float> & ZInd1 , std::list<int>  & ChIntersectInd1 , std::list<float> & EIntersectInd1 ,
+                              std::list<int>  & ChInd2 , std::list<float> & EInd2 , std::list<float> & YInd2 , std::list<float> & ZInd2 , std::list<int>  & ChIntersectInd2 , std::list<float> & EIntersectInd2);
 
   void GetListOf3ViewsPoint( float pitch , float alpha ,
-                             std::list<int> & ChIntersectInd1 , std::list<float> YInd1 , std::list<float> ZInd1 , std::list<float> EInd1,
-                             std::list<int> & ChIntersectInd2 , std::list<float> YInd2 , std::list<float> ZInd2 , std::list<float> EInd2 ,
+                             std::list<int> & ChIntersectInd1 , std::list<float> YInd1 , std::list<float> ZInd1 , std::list<float> EIntersectInd1,
+                             std::list<int> & ChIntersectInd2 , std::list<float> YInd2 , std::list<float> ZInd2 , std::list<float> EIntersectInd2 ,
                              std::list<float> & listYSP       , std::list<float> & listZSP ,
                              std::list<float> & listEind1SP   , std::list<float> & listEind2SP ,
                              std::list<int> & listCh1SP       , std::list<int> & listCh2SP );
@@ -546,7 +548,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     lChInd1Point.push_back(-999);
     lChInd2Point.clear();
     lChInd2Point.push_back(-999);
-
+    lEIntersectInd1.clear();
+    lEIntersectInd1.push_back(-999);
+    lEIntersectInd2.clear();
+    lEIntersectInd2.push_back(-999);
     vMCPart_pdgCode.clear();
     vMCPart_pdgCode.push_back(-999);
     vMCPart_mother.clear();
@@ -770,14 +775,16 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
       if ( fCoincidence > 0 )
       {
-        GetListOfCrossingChannel( fgeoYmin , fgeoYmax , fgeoZmin , fgeoZmax , fWire , lWireInd1 , lWireInd2 , lChannelInd1 , lYInd1 , lZInd1 , lChIntersectInd1 , lChannelInd2 , lYInd2 , lZInd2 , lChIntersectInd2 ); 
-        if ( bIs3ViewsCoincidence ) GetListOf3ViewsPoint( fPitch , fPitchMultiplier , lChIntersectInd1 , lYInd1 , lZInd1 , lEnergyInd1 , lChIntersectInd2 , lYInd2 , lZInd2 , lEnergyInd2 , lYPoint , lZPoint , lEInd1Point , lEInd2Point , lChInd1Point , lChInd2Point);
+        GetListOfCrossingChannel( fgeoYmin , fgeoYmax , fgeoZmin , fgeoZmax , fWire , lWireInd1 , lWireInd2 , 
+			          lChannelInd1 , lEnergyInd1 , lYInd1 , lZInd1 , lChIntersectInd1 , lEIntersectInd1 , 
+				  lChannelInd2 , lEnergyInd2 , lYInd2 , lZInd2 , lChIntersectInd2 , lEIntersectInd2); 
+        if ( bIs3ViewsCoincidence ) GetListOf3ViewsPoint( fPitch , fPitchMultiplier , lChIntersectInd1 , lYInd1 , lZInd1 , lEIntersectInd1 , lChIntersectInd2 , lYInd2 , lZInd2 , lEIntersectInd2 , lYPoint , lZPoint , lEInd1Point , lEInd2Point , lChInd1Point , lChInd2Point);
 	else
 	{
 	  //induction 1
 	  lYPoint.insert( lYPoint.end() , lYInd1.begin() , lYInd1.end() );
 	  lZPoint.insert( lZPoint.end() , lZInd1.begin() , lZInd1.end() );
-	  lEInd1Point.insert( lEInd1Point.end() , lEnergyInd1.begin() , lEnergyInd1.end() );
+	  lEInd1Point.insert( lEInd1Point.end() , lEIntersectInd1.begin() , lEIntersectInd1.end() );
 	  lChInd1Point.insert( lChInd1Point.end() , lChIntersectInd1.begin() , lChIntersectInd1.end() );
 	  int N1 = lYInd1.size();
 	  lEInd2Point.insert( lEInd2Point.end() , N1 , 0 );
@@ -786,7 +793,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 	  //induction 2
 	  lYPoint.insert( lYPoint.end() , lYInd2.begin() , lYInd2.end() );
 	  lZPoint.insert( lZPoint.end() , lZInd2.begin() , lZInd2.end() );
-	  lEInd2Point.insert( lEInd2Point.end() , lEnergyInd2.begin() , lEnergyInd2.end() );
+	  lEInd2Point.insert( lEInd2Point.end() , lEIntersectInd2.begin() , lEIntersectInd2.end() );
 	  lChInd2Point.insert( lChInd2Point.end() , lChIntersectInd2.begin() , lChIntersectInd2.end() );
 	  int N2 = lYInd2.size();
 	  lEInd1Point.insert( lEInd1Point.end() , N2 , 0 );
@@ -843,6 +850,10 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
       lChInd1Point.push_back(-999);
       lChInd2Point.clear();
       lChInd2Point.push_back(-999);
+      lEIntersectInd1.clear();
+      lEIntersectInd1.push_back(-999);
+      lEIntersectInd2.clear();
+      lEIntersectInd2.push_back(-999);
     }
   
     fTimeIsolation = 0;
@@ -949,6 +960,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
     lEInd2Point.clear();
     lChInd1Point.clear();
     lChInd2Point.clear();
+    lEIntersectInd1.clear();
+    lEIntersectInd2.clear();
     vMCPart_pdgCode.clear();
     vMCPart_mother.clear();
     vMCPart_motherPdg.clear();
@@ -1188,6 +1201,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vMCPart_Startx.clear();
   vMCPart_Starty.clear();
   vMCPart_Startz.clear();
+  lEIntersectInd1.clear();
+  lEIntersectInd2.clear();
 
   NCluster = -999;
 
@@ -1565,8 +1580,10 @@ bool pdvdana::SingleHit::IntersectOutsideOfTPC( float Ymin , float Ymax , float 
 
 void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , float Zmin , float Zmax ,
 		                                    geo::WireID & WireCol , std::list<geo::WireID> & WireInd1 , std::list<geo::WireID> & WireInd2 , 
-						    std::list<int>  & ChInd1 , std::list<float> & YInd1 , std::list<float> & ZInd1 , std::list<int>  & ChIntersectInd1 , 
-                                                    std::list<int>  & ChInd2 , std::list<float> & YInd2 , std::list<float> & ZInd2 , std::list<int>  & ChIntersectInd2 )
+						    std::list<int>  & ChInd1 , std::list<float> & EInd1 , std::list<float> & YInd1 , std::list<float> & ZInd1 , 
+						    std::list<int>  & ChIntersectInd1 , std::list<float> & EIntersectInd1 ,
+                                                    std::list<int>  & ChInd2 , std::list<float> & EInd2 , std::list<float> & YInd2 , std::list<float> & ZInd2 , 
+						    std::list<int>  & ChIntersectInd2 , std::list<float> & EIntersectInd2)
 {
   geo::Point_t point = geo::Point_t(-999,-999,-999);
   bool drap;
@@ -1574,7 +1591,14 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   double y = -999. , z = -999.;
   auto const wcol = fGeom->WireEndPoints(WireCol);
 
+  ChIntersectInd1.clear();
+  EIntersectInd1.clear();
+  ChIntersectInd2.clear();
+  EIntersectInd2.clear();
+  
   std::list<int>::iterator ch1  = ChInd1.begin();
+  std::list<float>::iterator e1   = EInd1.begin();
+
   for (auto const elementInd1 : WireInd1)
   {
     if (WireCol.TPC != elementInd1.TPC)
@@ -1588,11 +1612,14 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
         {
 	  YInd1.push_back(y);
           ZInd1.push_back(z);
+          EIntersectInd1.push_back(*e1);
 	  ChIntersectInd1.push_back(*ch1);
+          ++e1; 
 	  ++ch1;
 	  continue;
         }
       }
+      ++e1;
       ++ch1;
       continue ;
     }
@@ -1603,10 +1630,14 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
       YInd1.push_back(point.Y());
       ZInd1.push_back(point.Z());
       ChIntersectInd1.push_back(*ch1);
+      EIntersectInd1.push_back(*e1);
     }
+    ++e1;
     ++ch1;
   }
   std::list<int>::iterator ch2  = ChInd2.begin();
+  std::list<float>::iterator e2   = EInd2.begin();
+
   for (auto const elementInd2 : WireInd2)
   { 
     if ((WireCol.TPC != elementInd2.TPC ) && (bIsPDVD))
@@ -1621,10 +1652,13 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
           YInd2.push_back(y);
           ZInd2.push_back(z);
           ChIntersectInd2.push_back(*ch2);
+	  EIntersectInd2.push_back(*e2);
+	  ++e2;
           ++ch2;
           continue;
         }
       }
+      ++e2;
       ++ch2; 
       continue ;
     }
@@ -1634,14 +1668,16 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
       YInd2.push_back(point.Y());
       ZInd2.push_back(point.Z());
       ChIntersectInd2.push_back(*ch2);
+      EIntersectInd2.push_back(*e2);
     }
+    ++e2;
     ++ch2;
   }
 }
 
 void pdvdana::SingleHit::GetListOf3ViewsPoint( float pitch , float alpha , 
-                                        std::list<int> & ChIntersectInd1 , std::list<float> YInd1 , std::list<float> ZInd1 , std::list<float> EInd1, 
-                                        std::list<int> & ChIntersectInd2 , std::list<float> YInd2 , std::list<float> ZInd2 , std::list<float> EInd2 , 
+                                        std::list<int> & ChIntersectInd1 , std::list<float> YInd1 , std::list<float> ZInd1 , std::list<float> EIntersectInd1, 
+                                        std::list<int> & ChIntersectInd2 , std::list<float> YInd2 , std::list<float> ZInd2 , std::list<float> EIntersectInd2 , 
                                         std::list<float> & listYSP       , std::list<float> & listZSP , 
                                         std::list<float> & listEind1SP   , std::list<float> & listEind2SP , 
                                         std::list<int> & listCh1SP       , std::list<int> & listCh2SP)
@@ -1649,7 +1685,7 @@ void pdvdana::SingleHit::GetListOf3ViewsPoint( float pitch , float alpha ,
 
   std::list<int>::iterator  ch1t = ChIntersectInd1.begin();
   std::list<float>::iterator z1t = ZInd1.begin();
-  std::list<float>::iterator e1t = EInd1.begin();
+  std::list<float>::iterator e1t = EIntersectInd1.begin();
 
   float dy, dz, dr;
 
@@ -1657,7 +1693,7 @@ void pdvdana::SingleHit::GetListOf3ViewsPoint( float pitch , float alpha ,
   {
     std::list<int>::iterator  ch2t = ChIntersectInd2.begin();
     std::list<float>::iterator z2t = ZInd2.begin();
-    std::list<float>::iterator e2t = EInd2.begin();
+    std::list<float>::iterator e2t = EIntersectInd2.begin();
 
     for ( auto const yind2 : YInd2)
     {
