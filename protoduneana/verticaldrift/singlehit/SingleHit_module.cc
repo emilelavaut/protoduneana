@@ -1010,14 +1010,14 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   std::cout << " THERE ARE " << PTSIsolated << " ISOLATED POINTS IN EVENT " << fEventID << std::endl;
   }
 
+  point v;
   if (LogLevel > 2)
   {
     vY_point.clear();
     vZ_point.clear();
-    point v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent , vY_point , vZ_point);
+    v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent , vY_point , vZ_point);
   }
-	
-  point v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
+  else  v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
 
 
   std::vector<std::vector<float> > dataPos = GetData(PTSIsolated,v);
@@ -1792,7 +1792,7 @@ point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vecto
   int i = 0;
   point p, pt = (point) malloc(sizeof(point_t) * size);
 
-  std:vector<float> vy;
+  std::vector<float> vy;
   std::vector<float> vz;
 	
   for (p = pt + size; p-- > pt;)
