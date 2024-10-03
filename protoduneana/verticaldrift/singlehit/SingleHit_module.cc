@@ -1640,7 +1640,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
 
   for (auto const elementInd2 : WireInd2)
   { 
-    if ((WireCol.TPC != elementInd2.TPC ) && (bIsPDVD))
+    if (WireCol.TPC != elementInd2.TPC ) 
     { 
 
       if (bIsPDVD)
