@@ -224,8 +224,11 @@ private:
   float fRadiusInt;
   float fRadiusExt;
   float fElectronVelocity;
-  float fCoincidenceWd;
-  float fTimePlane1ToPlane2; 
+  float fCoincidenceWd1_left;
+  float fCoincidenceWd1_right;
+  float fCoincidenceWd2_left;
+  float fCoincidenceWd2_right;
+
   float fPitch;
   float fPitchMultiplier;
 
@@ -308,7 +311,7 @@ private:
 
   void GetTimeIsolation(art::Event const & ev, std::string HitLabel, float const PeakTimeWdInt, float const PeakTimeWdExt, std::list<int> & index_list_single, std::list<int> & index_listIsolated);
 
-  void GetListOfTimeCoincidenceHit(art::Event const & ev, std::string HitLabel, const float CoincidenceWd, float const TimeInd1ToInd2, const recob::Hit & HitCol,
+  void GetListOfTimeCoincidenceHit(art::Event const & ev, std::string HitLabel, const float CoincidenceWd1_l , const float CoincidenceWd1_r , const float CoincidenceWd2_l , float const CoincidenceWd2_r , const recob::Hit & HitCol,
                                                                                   std::list<geo::WireID> & WireInd1,
                                                                                   std::list<geo::WireID> & WireInd2,
                                                                                   std::list<int>   & ChannelInd1,
@@ -391,8 +394,10 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     fRadiusInt(p.get<float>("RadiusInt")),
     fRadiusExt(p.get<float>("RadiusExt")),
 
-    fCoincidenceWd(p.get<float>("CoincidenceWindow")), //in mus,
-    fTimePlane1ToPlane2(p.get<float>("TimePlane1ToPlane2")), //in mus,
+    fCoincidenceWd1_left(p.get<float>("CoincidenceWindow1_left"  ,3)), //in mus,
+    fCoincidenceWd1_right(p.get<float>("CoincidenceWindow1_right",3)), //in mus,
+    fCoincidenceWd2_left(p.get<float>("CoincidenceWindow2_left"  ,3)), //in mus,
+    fCoincidenceWd2_right(p.get<float>("CoincidenceWindow2_right",3)), //in mus,
 
     fPitch(p.get<float>("Pitch")),
     fPitchMultiplier(p.get<float>("PitchMultiplier")),    
@@ -419,18 +424,20 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob(clockData);
   
-  fTickTimeInMus      = sampling_rate(clockData)/1000; //caution sampling_rate(clockData) is in ns
-  fCoincidenceWd      = fCoincidenceWd/fTickTimeInMus;      // in tt
-  fTimePlane1ToPlane2 = fTimePlane1ToPlane2/fTickTimeInMus; // in tt
+  fTickTimeInMus  = sampling_rate(clockData)/1000; //caution sampling_rate(clockData) is in ns
+  fCoincidenceWd1_right = fCoincidenceWd1_right/fTickTimeInMus; // in tt
+  fCoincidenceWd1_left  = fCoincidenceWd1_left/fTickTimeInMus; // in tt
+  fCoincidenceWd2_left  = fCoincidenceWd2_left/fTickTimeInMus; // in tt
+  fCoincidenceWd2_right = fCoincidenceWd2_right/fTickTimeInMus; // in tt
 
   fElectronVelocity   = detProp.DriftVelocity();
  
   if(LogLevel>0){
-    std::cout << " -- timing parameters -- "                            << std::endl;
-    std::cout << "   sampling_rate        " << sampling_rate(clockData) << std::endl;
-    std::cout << "   fTickTimeInMus:      " << fTickTimeInMus           << std::endl;
-    std::cout << "   fCoincidenceWd:      " << fCoincidenceWd           << std::endl;
-    std::cout << "   fTimePlane1ToPlane2: " << fTimePlane1ToPlane2      << std::endl;
+    std::cout << " -- timing parameters -- "                             << std::endl;
+    std::cout << "   sampling_rate         " << sampling_rate(clockData) << std::endl;
+    std::cout << "   fTickTimeInMus:       " << fTickTimeInMus           << std::endl;
+    std::cout << "   CoincidenceWd1:       " << fCoincidenceWd1_right - fCoincidenceWd1_left << std::endl;
+    std::cout << "   CoincidenceWd2:       " << fCoincidenceWd2_right - fCoincidenceWd2_left << std::endl;
   } 
   //Get detector Boundaries
   unsigned fNtpcs = fGeom->NTPC();
@@ -766,7 +773,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
       // Coincidence research
 
-      GetListOfTimeCoincidenceHit( e, fHitLabel, fCoincidenceWd, fTimePlane1ToPlane2 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2, lPeakAmpInd1, lPeakAmpInd2);
+      GetListOfTimeCoincidenceHit( e, fHitLabel, fCoincidenceWd1_left, fCoincidenceWd1_right ,fCoincidenceWd2_left, fCoincidenceWd2_right , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2, lPeakAmpInd1, lPeakAmpInd2);
       //GetListOfTimeCoincidenceHit( e, fHitLabel, 10 , 0 , hit, lWireInd1, lWireInd2, lChannelInd1, lChannelInd2, lEnergyInd1, lEnergyInd2, lPeakTimeInd1, lPeakTimeInd2);
 
       fCoincidence = 0;
@@ -1496,7 +1503,7 @@ void pdvdana::SingleHit::GetTimeIsolation(art::Event const & ev, std::string Hit
   }
 }
 
-void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std::string HitLabel, float const CoincidenceWd, float const TimeInd1ToInd2, const recob::Hit & HitCol, 
+void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std::string HitLabel, float const CoincidenceWd1_l , float const CoincidenceWd1_r, float const CoincidenceWd2_l , float const CoincidenceWd2_r, const recob::Hit & HitCol, 
                                                                                   std::list<geo::WireID> & WireInd1,
                                                                                   std::list<geo::WireID> & WireInd2,
                                                                                   std::list<int>   & ChannelInd1,
@@ -1515,10 +1522,10 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit(art::Event const & ev, std:
   float PeakTimeCol    = HitCol.PeakTime();
   //float RMSPeakTimeCol = HitCol.RMS();
 
-  float EndTime1   = PeakTimeCol + CoincidenceWd;
-  float EndTime2   = PeakTimeCol + CoincidenceWd - TimeInd1ToInd2;
-  float StartTime1 = PeakTimeCol - CoincidenceWd;
-  float StartTime2 = PeakTimeCol - CoincidenceWd + TimeInd1ToInd2;
+  float EndTime1   = PeakTimeCol + CoincidenceWd1_r;
+  float EndTime2   = PeakTimeCol + CoincidenceWd2_r;
+  float StartTime1 = PeakTimeCol - CoincidenceWd1_l;
+  float StartTime2 = PeakTimeCol - CoincidenceWd2_l;
 
   float PeakTime = -999;
   int   Plane    = -999;
