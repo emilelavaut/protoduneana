@@ -50,6 +50,8 @@
 #include "TLatex.h"
 #include "TCanvas.h"
 #include "TPaveStats.h"
+#include "TGraph.h"
+#include "TEllipse.h"
 
 using std::vector;
 using std::string;
@@ -80,6 +82,14 @@ typedef struct
   std::vector<float> vMCX , vMCY , vMCZ;
   std::vector<std::string> vMCGenTag;
 } Cluster ; 
+
+//stucture used for assocition between a grid coordinate and a int 
+struct GridHasher {
+    std::size_t operator()(const std::tuple<int, int, int>& key) const {
+        // Use a combination of prime numbers to create a unique hash from 3D coordinates
+        return std::get<0>(key) * 73856093 ^ std::get<1>(key) * 19349663 ^ std::get<2>(key) * 83492791;
+    }
+};
 
 namespace pdvdana {
 
@@ -335,7 +345,7 @@ private:
                              std::list<float> & listEind1SP   , std::list<float> & listEind2SP ,
                              std::list<int> & listCh1SP       , std::list<int> & listCh2SP );
 
-  std::vector<int> GetXYZIsolatedPoint( std::vector<float> vYPoint , std::vector<float> vZPoint , std::vector<float> vPeakTimeCol ,
+  std::vector<int> GetXYZIsolatedPoint( std::vector<float> vYPoint , std::vector<float> vZPoint , std::vector<float> vPeakTimeCol , std::vector<int> vNOF ,
                                                           float fElectronVelocity , float fTickToMus , float radiusInt , float radiusExt );
   
   bool IntersectOutsideOfTPC( float Ymin , float Ymax , float Zmin , float Zmax , double ChInd_start_y , double ChInd_start_z , double ChInd_end_y , double ChInd_end_z ,
@@ -343,10 +353,11 @@ private:
 						  double& y , double& z );
 
   // CLUSTER FUNCTIONS
-  point gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ );
-  point gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ , std::vector<float> &vYpoint , std::vector<float> &vZpoint);
+  point gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ , std::vector<int> vNOF);
 
   float dist2(point a, point b);
+
+  void Plot(TCanvas * canvas , int event , int nbin , float ymin , float ymax , float zmin , float zmax , std::vector<std::vector<float> > &data,std::vector<std::vector<float> > &cluster,double RMS );
 
   float randf(float m);
 
@@ -436,8 +447,8 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     std::cout << " -- timing parameters -- "                             << std::endl;
     std::cout << "   sampling_rate         " << sampling_rate(clockData) << std::endl;
     std::cout << "   fTickTimeInMus:       " << fTickTimeInMus           << std::endl;
-    std::cout << "   CoincidenceWd1:       " << fCoincidenceWd1_right - fCoincidenceWd1_left << std::endl;
-    std::cout << "   CoincidenceWd2:       " << fCoincidenceWd2_right - fCoincidenceWd2_left << std::endl;
+    std::cout << "   CoincidenceWd1:       " << fCoincidenceWd1_right + fCoincidenceWd1_left << std::endl;
+    std::cout << "   CoincidenceWd2:       " << fCoincidenceWd2_right + fCoincidenceWd2_left << std::endl;
   } 
   //Get detector Boundaries
   unsigned fNtpcs = fGeom->NTPC();
@@ -723,8 +734,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 	 
     if (bIsPDHD)
     { 
-      if ( (hit.WireID().TPC == 2)|| (hit.WireID().TPC == 6) ) fNearOrFarToTheBeam = -1;
-      if ( (hit.WireID().TPC == 1)|| (hit.WireID().TPC == 5) ) fNearOrFarToTheBeam = 1;
+      if ( (hit.WireID().TPC == 2)|| (hit.WireID().TPC == 6) || (hit.WireID().TPC == 3) || (hit.WireID().TPC == 7) ) fNearOrFarToTheBeam = -1; // 3 and 7 are dumie TPC
+      if ( (hit.WireID().TPC == 1)|| (hit.WireID().TPC == 5) || (hit.WireID().TPC == 0) || (hit.WireID().TPC == 4) ) fNearOrFarToTheBeam = 1;  // 0 and 4 are dumie TPC
     }
     if (bIsPDVD)
     {
@@ -984,7 +995,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   if ( LogLevel > 4) std::cout << "THERE ARE " << fAmbiguousHit << " HIT(s) WITH AMBIGUOUS ORIGIN " << std::endl;
 
-  std::vector<int> vIso = GetXYZIsolatedPoint( vYPointByEvent , vZPointByEvent , vPeakTimeColByEvent , fElectronVelocity , fTickTimeInMus , fRadiusInt , fRadiusExt );
+  std::vector<int> vIso = GetXYZIsolatedPoint( vYPointByEvent , vZPointByEvent , vPeakTimeColByEvent , vNoFByEvent , fElectronVelocity , fTickTimeInMus , fRadiusInt , fRadiusExt );
   int PTSIsolated = (int) vIso.size();
 
   if (PTSIsolated == 0)
@@ -1031,13 +1042,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   }
 
   point v;
-  if (LogLevel > 2)
-  {
-    vY_point.clear();
-    vZ_point.clear();
-    v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent , vY_point , vZ_point);
-  }
-  else	v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent );
+  v = gen_yz( PTSIsolated , vIso , vYPointByEvent , vZPointByEvent , vNoFByEvent );
 
 
   std::vector<std::vector<float> > dataPos = GetData(PTSIsolated,v);
@@ -1081,14 +1086,57 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   if ( LogLevel > 0) printf("Data clustering ended successfully \n");
 
+
+  if (LogLevel > 3)
+  {
+    int k = 0;
+    point test;
+    std::list<int> l;
+    for (k = 0, test = v; k < PTSIsolated ; k++, test++)
+    {
+      int group = test->group;
+      if ( !Inside(group ,l))
+      {
+	std::cout << " cluster n° " << group << std::endl;
+	l.push_back(group);
+      }
+    }
+  }
+
+
   int j = 0;
   point p;
   for (j = 0, p = v; j < PTSIsolated ; j++, p++)
   {
-    if( LogLevel > 4) std::cout << " REALOCATION ......";
     p->group = reallocate( p , clustersPos , threshold);
-    if( LogLevel > 4) std::cout << " ......DONE" << std::endl;
   }
+  if (LogLevel > 3) std::cout<< " reallocation done " << std::endl;
+
+  if (LogLevel > 3)
+  {
+    int k = 0;
+    point test;
+    std::list<int> l;
+    for (k = 0, test = v; k < PTSIsolated ; k++, test++)
+    {
+      int group = test->group;
+      if ( !Inside(group ,l))
+      {
+        std::cout << " cluster n° " << group << std::endl;
+        l.push_back(group);
+      }
+    }
+  }
+
+
+  if ( LogLevel > 2)
+  {
+    art::ServiceHandle<art::TFileService> tfs;
+    TString canvasName = Form("clusterisation_%i", fEventID);
+    TCanvas* canvas = tfs->make<TCanvas>(canvasName, canvasName);
+    Plot(canvas , fEventID ,2000 , fgeoYmin-50 , fgeoYmax+50 , -2*fgeoZmax-50 , fgeoZmax+50, dataPos ,clustersPos,threshold );
+    canvas->Write(canvasName);
+  } 
 
   std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent , vMCXByEvent , vMCYByEvent , vMCZByEvent , vNoFByEvent);
   NCluster = vCluster.size();
@@ -1731,7 +1779,7 @@ void pdvdana::SingleHit::GetListOf3ViewsPoint( float pitch , float alpha ,
 }
 
 
-std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYPoint , std::vector<float> vZPoint , std::vector<float> vPeakTimeCol , 
+std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYPoint , std::vector<float> vZPoint , std::vector<float> vPeakTimeCol , std::vector<int> vNOF ,
 					                  float fElectronVelocity , float fTickToMus , float radiusInt , float radiusExt )
 {
 
@@ -1748,18 +1796,31 @@ std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYP
   
   int npoint = vYPoint.size();
   std::vector<int> vIsIsolated( npoint , -1 );
+  vIso.resize( npoint, -1);
 
+  float zIs = 0;
+  float yIs = 0;
+  float xIs = 0;
+
+  bool IsIsolated = true;
+
+  float d = 0;
+  int iso_count = 0;
+
+  float electronDriftScale = fElectronVelocity * fTickToMus;
+
+  float radiusIntsq = radiusInt*radiusInt;
+  float radiusExtsq = radiusExt*radiusExt;
+  int nof = 0;
   for( int k = 0 ; k<npoint ; k++)
   {
-    float zIs = vZPoint[k];
-    float yIs = vYPoint[k];
-    float xIs = vPeakTimeCol[k]*fElectronVelocity*fTickToMus;
+    zIs = vZPoint[k];
+    yIs = vYPoint[k];
+    xIs = vPeakTimeCol[k]*electronDriftScale;
 
-    int i = 0;
-    bool flag = true;
+    IsIsolated = true;
 
-    int indic = 0;
-
+    nof = vNOF[k];
     if (( yIs == -999) || (zIs == -999))
     {
       vIsIsolated[k] = 0;
@@ -1770,34 +1831,31 @@ std::vector<int> pdvdana::SingleHit::GetXYZIsolatedPoint( std::vector<float> vYP
       continue;
     }
 
-    while((flag)&&(i<npoint))
+    for(int i = 0; i<npoint; i++)
     {
-      float y = vYPoint[i];
-      float z = vZPoint[i];
-      float x = vPeakTimeCol[i]*fElectronVelocity*fTickToMus;
+      if (nof != vNOF[i]) continue; 
+      if (i == k) continue;
 
-      float d = GetDist( xIs , yIs , zIs , x , y , z );
+      d = (yIs - vYPoint[i])*(yIs - vYPoint[i]) + (zIs - vZPoint[i])*(zIs - vZPoint[i]) + (xIs - vPeakTimeCol[i]*fElectronVelocity*fTickToMus)*(xIs - vPeakTimeCol[i]*electronDriftScale);
 
-      if (( d > radiusInt)&&( d < radiusExt))
+      if (( d > radiusIntsq)&&( d < radiusExtsq))
       {
-        flag = false;
-        indic = i;
+        IsIsolated = false;
+	vIsIsolated[k] = 0;
+        vIsIsolated[i] = 0;
+	break;
       }
-      i++;
     }
 
-    if (flag)
+    if (IsIsolated)
     {
       vIsIsolated[k] = 1;
-      vIso.push_back(k);
-    }
-    else
-    {
-      vIsIsolated[k] = 0;
-      vIsIsolated[indic] = 0;
+      vIso[iso_count] = k;
+      iso_count++;
     }
   }
 
+  vIso.resize(iso_count);
   return vIso;
 }
 
@@ -1815,49 +1873,75 @@ float pdvdana::SingleHit::randf(float m)
     return m * rand() / (RAND_MAX - 1.);
 }
 
-point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ )
+point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ , std::vector<int> vNOF)
 {
   int i = 0;
   point p, pt = (point) malloc(sizeof(point_t) * size);
 
   for (p = pt + size; p-- > pt;)
   {
-    p->z = vZ[vIndex[i]];
     p->y = vY[vIndex[i]];
-
     p->index = vIndex[i];
+
+    if (vNOF[vIndex[i]] == -1)
+    {
+      p->z = -1*vZ[vIndex[i]] - fgeoZmax;
+    }
+    else p->z = vZ[vIndex[i]];
     i++;
   }
 
   return pt;
 }
 
-point pdvdana::SingleHit::gen_yz(int size , std::vector<int> vIndex , std::vector<float> vY , std::vector<float> vZ , std::vector<float> &vYpoint , std::vector<float> &vZpoint)
-{
-  int i = 0;
-  point p, pt = (point) malloc(sizeof(point_t) * size);
+void pdvdana::SingleHit::Plot(TCanvas* canvas ,int event , int nbin , float ymin , float ymax , float zmin , float zmax , std::vector<std::vector<float> > &data,std::vector<std::vector<float> > &cluster,double RMS ){
 
-  std::vector<float> vy;
-  std::vector<float> vz;
-	
-  std::cout << "number of isolated point at creation " << size << std::endl;
-  for (p = pt + size; p-- > pt;)
-  {
-    p->z = vZ[vIndex[i]];
-    p->y = vY[vIndex[i]];
-    vy.push_back(vY[vIndex[i]]);
-    vz.push_back(vZ[vIndex[i]]);
-	  
-    p->index = vIndex[i];
-    i++;
-  }
+    TGraph* grData = new TGraph();
+    TGraph* grCluster = new TGraph();
 
-  std::cout << "number of isolated point in vector " << vYpoint.size() << std::endl;
-  vYpoint = vy;
-  vZpoint = vz;
-  return pt;
+    TH2F* Background = new TH2F(Form("Background_%d",event),"",nbin,ymin,ymax,nbin,zmin,zmax);
+    Background->SetXTitle("y[cm]");
+    Background->SetYTitle("z[cm]");
+    Background->SetStats(0);
+    std::vector<TEllipse*> Ell;
+
+    for(int i = 0;i< (int) data[0].size();i++) grData->SetPoint(i,data[1][i],data[0][i]);
+
+    for(int i = 0;i< (int) cluster[0].size();i++){
+        //printf("Final cluster %i position : %f %f \n",i+1,cluster[1][i],cluster[0][i]);
+
+        grCluster->SetPoint(i,cluster[1][i],cluster[0][i]);
+
+        TEllipse* ell = new TEllipse();
+        ell->SetX1(cluster[1][i]);
+        ell->SetY1(cluster[0][i]);
+        ell->SetR1(RMS);
+        ell->SetR2(RMS);
+        ell->SetLineColor(i);
+        ell->SetFillStyle(3001);
+        ell->SetFillColor(i%9+1);
+
+        Ell.push_back(ell);
+    }
+
+    grData->SetMarkerStyle(50);
+    grData->SetMarkerSize(0.9);
+    grData->SetMarkerColor(kGray+2);
+
+    grCluster->SetMarkerStyle(3);
+    grCluster->SetMarkerColor(kBlack);
+
+    canvas->cd();
+    Background->Draw();
+    grData->Draw("P SAME");
+    grCluster->Draw("P SAME");
+
+    for(int i = 0;i< (int) Ell.size();i++) 
+    {
+      canvas->cd();	 
+      Ell[i]->Draw("same");
+    }
 }
-
 
 int pdvdana::SingleHit::nearest(point pt, point cent, int n_cluster, float *d2)
 {
@@ -2099,11 +2183,16 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
             }
         }
     }
+    int overlap_counter = 0;
 
-    if(overlap>0)
+    vector<float> newclusterZ, newclusterY;
+    float meanZ, meanY;
+    while( (overlap_counter<10)&&(overlap>0) )
     {
-      vector<float> newclusterZ, newclusterY;
-      float meanZ, meanY;
+      newclusterZ.clear(); 
+      newclusterY.clear();
+      meanZ = 0;
+      meanY = 0;
 
       for(int i = 0;i<Ncls;i++)
       {
@@ -2113,21 +2202,21 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
 
         for(int j = i;j<Ncls;j++)
         {
-          if(IDoverlap[i][j] == 1 && cluster[0][j] != 666)
+          if(IDoverlap[i][j] == 1 && cluster[0][j] != -999)
           {
             meanZ += mean(cluster[0][i],cluster[0][j]);
             meanY += mean(cluster[1][i],cluster[1][j]);
-            cluster[0][j] = 666;
-            cluster[1][j] = 666;
+            cluster[0][j] = -999;
+            cluster[1][j] = -999;
             overlap++;
           }
         }
-        if(overlap == 0 && cluster[0][i] != 666)
+        if(overlap == 0 && cluster[0][i] != -999)
         {
           newclusterZ.push_back(cluster[0][i]);
           newclusterY.push_back(cluster[1][i]);
         }
-        else if(cluster[0][i] != 666)
+        else if(cluster[0][i] != -999)
         {
           newclusterZ.push_back(meanZ/float(overlap));
           newclusterY.push_back(meanY/float(overlap));
@@ -2138,8 +2227,32 @@ std::vector<int> pdvdana::SingleHit::CheckClusters(std::vector<std::vector<float
       cluster.push_back(newclusterZ);
       cluster.push_back(newclusterY);
 
-      if ( LogLevel > 3) printf("%lu clusters has been removed \n",Ncls-cluster[0].size());
+      if ( LogLevel > 3) printf("%lu clusters has been removed at iteration %d \n",Ncls-cluster[0].size(),overlap_counter);
 
+      dist = 0;
+      Ncls = cluster[0].size();
+      IDoverlap.clear();
+      overlap = 0;
+
+      for(int i = 0 ; i < Ncls ; i++)
+      {
+	std::vector<int> v(Ncls , 0); 
+        for(int j = i ; j < Ncls ; j++)
+        {
+          if(j > i)
+          {
+            dist = sqrt(GetDist2D(cluster[0][j],cluster[1][j],cluster[0][i],cluster[1][i]));
+            if(dist < 2.*RMS)
+            {
+              v[j] = 1;
+              overlap++;
+            }
+          }
+        }
+	IDoverlap.push_back(v);
+      }
+
+      overlap_counter++;
     }
 
     NComp = CheckCompletude( data, cluster , RMS , mult );
@@ -2246,7 +2359,9 @@ std::vector<Cluster> pdvdana::SingleHit::GetCluster( int n_point , int n_cluster
 
     if ( !Inside( ChannelCol , vTempCluster[ClusterID].lChannelCol ) )
     {
-      vTempCluster[ClusterID].Sumz += ECol * ( vp->z );
+      if (NoF == -1) vTempCluster[ClusterID].Sumz += ECol * ( -1*(vp->z)-fgeoZmax );
+      else vTempCluster[ClusterID].Sumz += ECol * ( vp->z );
+
       vTempCluster[ClusterID].Sumy += ECol * ( vp->y );
       vTempCluster[ClusterID].ECol += ECol;
       vTempCluster[ClusterID].PeakTime += PeakTime;
