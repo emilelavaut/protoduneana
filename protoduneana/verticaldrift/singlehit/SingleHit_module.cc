@@ -25,6 +25,7 @@
 #include "larcore/CoreUtils/ServiceUtil.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/ServicePack.h" 
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/Geometry/Geometry.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Track.h"
@@ -210,8 +211,16 @@ private:
   std::string fG4Label;
   std::string fRDTLabel;
 
+  // geometry 
+  const geo::WireReadoutGeom& fWireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
+
+  int fChannelWdInt;
+  int fChannelWdExt;
+  int fMultiplicity;
+
+  float fPeakTimeWdInt;
+  float fPeakTimeWdExt;
   int   LogLevel;
-  int   fMultiplicity;
   float fTickTimeInMus;
 
   float fRadiusInt;
@@ -375,8 +384,8 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     fG4Label(p.get<std::string>("G4Label","largeant")),
     fRDTLabel(p.get<std::string>("RDTLabel","tpcrawdecoder:daq")),
 
-    LogLevel(p.get<int>("LogLevel")),
     fMultiplicity(p.get<int>("HitMultiplicity")),
+    LogLevel(p.get<int>("LogLevel")),
    
     fRadiusInt(p.get<float>("RadiusInt")),
     fRadiusExt(p.get<float>("RadiusExt")),
@@ -1522,7 +1531,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   bool drap;
 
   double y = -999. , z = -999.;
-  auto const wcol = fGeom->WireEndPoints(WireCol);
+  auto const [wcolstart, wcolend] = fWireReadout.WireEndPoints(WireCol);
 
   std::list<int>::iterator ch1  = ChInd1.begin();
   for (auto const elementInd1 : WireInd1)
@@ -1530,8 +1539,8 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
     if (WireCol.TPC != elementInd1.TPC )
     {
       
-      auto const wind1 = fGeom->WireEndPoints(elementInd1);
-      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+      auto const [wind1start, wind1end] = fWireReadout.WireEndPoints(elementInd1);
+      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1start.Y() , wind1start.Z() , wind1end.Y() , wind1end.Z() , wcolstart.Y() , wcolstart.Z() , wcolend.Y() , wcolend.Z() , y , z);
       if (flag)
       {
 	YInd1.push_back(y);
@@ -1543,8 +1552,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
       ++ch1;
       continue ;
     }
-
-    drap = fGeom->WireIDsIntersect( WireCol , elementInd1 , point);
+    drap = fWireReadout.WireIDsIntersect( WireCol , elementInd1 , point);
     if ( drap )
     {
       YInd1.push_back(point.Y());
@@ -1558,8 +1566,8 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
   { 
     if (WireCol.TPC != elementInd2.TPC )
     { 
-      auto const wind2 = fGeom->WireEndPoints(elementInd2);
-      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+      auto const [wind2start, wind2end] = fWireReadout.WireEndPoints(elementInd2);
+      bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2start.Y() , wind2start.Z() , wind2end.Y() , wind2end.Z() , wcolstart.Y() , wcolstart.Z() , wcolend.Y() , wcolend.Z() , y , z);
       if (flag)
       {
         YInd2.push_back(y);
@@ -1572,7 +1580,7 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(  float Ymin , float Ymax , fl
       ++ch2; 
       continue ;
     }
-    drap = fGeom->WireIDsIntersect( WireCol , elementInd2 , point);
+    drap = fWireReadout.WireIDsIntersect( WireCol , elementInd2 , point);
     if ( drap ) 
     { 
       YInd2.push_back(point.Y());

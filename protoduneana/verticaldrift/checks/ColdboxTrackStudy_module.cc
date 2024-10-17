@@ -22,6 +22,7 @@
 
 // LarSoft
 #include "larcore/CoreUtils/ServiceUtil.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/Geometry/Geometry.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/ServicePack.h" 
@@ -224,6 +225,7 @@ private:
   
   // colbox-VD geometry
   const geo::Geometry* fCbvdGeom ;
+  const geo::WireReadoutGeom* fWireReadoutGeom;
   unsigned int         fNPlanes;
   float                fCbvdXmin; 
   float                fCbvdXmax; 
@@ -390,6 +392,7 @@ pdvdana::ColdboxTrackStudy::ColdboxTrackStudy(fhicl::ParameterSet const& p)
 {
   // Calling detector geometry product 
   fCbvdGeom = &*art::ServiceHandle<geo::Geometry>();
+  fWireReadoutGeom = &art::ServiceHandle<geo::WireReadout>()->Get();
 }
 
 bool pdvdana::ColdboxTrackStudy::CheckIfTrackIsThroughGoing(float trackStartVec[3], float trackEndVec[3])
@@ -898,7 +901,7 @@ void pdvdana::ColdboxTrackStudy::beginJob()
   fTrackTree = tfs->make<TTree>("trackTree","Store information about tracks" );
 
   // Get the number of anode planes to resize some vectors
-  fNPlanes = fCbvdGeom -> Nplanes();
+  fNPlanes = fWireReadoutGeom->Nplanes();
   if( fNPlanes != 3) std::cout << "!!! Warning! Number of planes found is: " << fNPlanes << std::endl ;
 
   //////////////////////////////////////////////////////
