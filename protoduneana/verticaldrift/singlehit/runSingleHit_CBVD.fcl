@@ -37,7 +37,8 @@ services:
   TimeTracker:           @local::dune_time_tracker
   MemoryTracker:         @local::dune_memory_tracker
   RandomNumberGenerator: {} #ART native random number generator
-   
+
+  WireReadout:          @local::dune_wire_readout   
   FileCatalogMetadata:  @local::art_file_catalog_mc
                         @table::vdcb_crp2_services
                         @table::vdcb_dataprep_base_services
@@ -55,16 +56,3 @@ physics:
   end_paths: [ analysis ]
 }
 
-physics.analyzers.ana.IsPDVD: true
-
-services.Geometry.GDML: "dunecrpcb2_v3_refactored.gdml"
-services.Geometry.ROOT: "dunecrpcb2_v3_refactored.gdml"
-
-#CRP sampling rate
-services.DetectorClocksService: @local::protodune_detectorclocks
-services.DetectorClocksService.ClockSpeedTPC: 1.953125 # 512ns per sample
-services.DetectorClocksService.ClockSpeedOptical: 62.5 # 016ns per sample
-
-services.DetectorPropertiesService.Efield: [0.438, 1, 1]
-services.DetectorPropertiesService.NumberTimeSamples: 8256
-services.DetectorPropertiesService.ReadOutWindowSize: 8256
