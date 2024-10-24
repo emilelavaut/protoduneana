@@ -16,26 +16,13 @@ SingleHitParams:
 
   RadiusInt:            1   # in cm
   RadiusExt:            20    # in cm
-
   CoincidenceWindow1_right:   5   # in mus
   CoincidenceWindow1_left:    5    # in mus
   CoincidenceWindow2_left:    5    # in mus
   CoincidenceWindow2_right:   5   # in mus
 
-  Pitch:                0.5  # in cm
-  PitchMultiplier:      1.2
   Is3ViewsCoincidence:  false #if false then only 2 views coincidence is imposed
   HitTree:              false #if you want the hit tree or not
-  IsPDVD:               false
-  IsPDHD:               false
-
-  #Cluster variables
-  NumberInitClusters:   20
-  MaxSizeCluster:       3    # in cm
-  MinSizeCluster:       1  # in cm
-  ClusterSizeMulti:     1.2
-  NumberConvStep:       300
-  Covering:             0.99
 
 }
 

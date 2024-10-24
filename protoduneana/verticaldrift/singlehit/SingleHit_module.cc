@@ -25,6 +25,7 @@
 #include "larcore/CoreUtils/ServiceUtil.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/ServicePack.h" 
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/Geometry/Geometry.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Track.h"
@@ -259,6 +260,7 @@ private:
   //float fCalibration;
 
   // geometry
+  const geo::WireReadoutGeom& fWireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
   const geo::Geometry* fGeom;
   float fgeoXmin = 1e6; 
   float fgeoXmax =-1e6; 
@@ -414,8 +416,8 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     fCoincidenceWd2_left(p.get<float>("CoincidenceWindow2_left"  ,3)), //in mus,
     fCoincidenceWd2_right(p.get<float>("CoincidenceWindow2_right",3)), //in mus,
 
-    fPitch(p.get<float>("Pitch")),
-    fPitchMultiplier(p.get<float>("PitchMultiplier")),    
+    fPitch(p.get<float>("Pitch",0.5)), //cm
+    fPitchMultiplier(p.get<float>("PitchMultiplier",1.2)), // 20% error    
   
     bIs3ViewsCoincidence(p.get<bool>("Is3ViewsCoincidence")),
     bHitTree(p.get<bool>("HitTree")),
@@ -423,15 +425,13 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     bIsPDHD(p.get<bool>("IsPDHD",false)),
     bVetoTrack(p.get<bool>("VetoTrack",false)),
 
-    fNumberInitClusters(p.get<int>("NumberInitClusters")),
-    fMaxSizeCluster(p.get<float>("MaxSizeCluster")),
-    fMinSizeCluster(p.get<float>("MinSizeCluster")),
-    fClusterSizeMulti(p.get<float>("ClusterSizeMulti")),
-    fNumberConvStep(p.get<int>("NumberConvStep")),
-    fCovering(p.get<float>("Covering"))
+    fNumberInitClusters(p.get<int>("NumberInitClusters",25)),
+    fMaxSizeCluster(p.get<float>("MaxSizeCluster",0)),
+    fMinSizeCluster(p.get<float>("MinSizeCluster",0)),
+    fClusterSizeMulti(p.get<float>("ClusterSizeMulti",1.2)),
+    fNumberConvStep(p.get<int>("NumberConvStep",300)),
+    fCovering(p.get<float>("Covering",0.99))
 
-    //fCalibration(p.get<float>("Calibration"))
-    //fTagHDVD(p.get<int>("tagPD"))
     // More initializers here.
 {
   // Call appropriate consumes<>() for any products to be retrieved by this module.
@@ -475,6 +475,8 @@ pdvdana::SingleHit::SingleHit(fhicl::ParameterSet const& p)
     std::cout << "  " << fgeoZmin << " < Z < " << fgeoZmax << std::endl;
   }
 
+  if (fMaxSizeCluster == 0) fMaxSizeCluster = fRadiusInt*1.75;
+  if (fMinSizeCluster == 0) fMinSizeCluster = fRadiusInt;
 }
 
 void pdvdana::SingleHit::analyze(art::Event const& e)
@@ -644,6 +646,24 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   GetTimeIsolation( e, fHitLabel, fPeakTimeWdInt, fPeakTimeWdExt, lSingleIndex, lIsolatedIndex);
 
+  if ( !vYPointByEvent.empty() )       vYPointByEvent.clear();
+  if ( !vZPointByEvent.empty() )       vZPointByEvent.clear();
+  if ( !vEInd1PointByEvent.empty() )   vEInd1PointByEvent.clear();
+  if ( !vEInd2PointByEvent.empty() )   vEInd2PointByEvent.clear();
+  if ( !vChInd1PointByEvent.empty() )  vChInd1PointByEvent.clear();
+  if ( !vChInd2PointByEvent.empty() )  vChInd2PointByEvent.clear();
+  if ( !vNoFByEvent.empty() )          vNoFByEvent.clear();
+  if ( !vEnergyColByEvent.empty() )    vEnergyColByEvent.clear();
+  if ( !vPeakTimeColByEvent.empty() )  vPeakTimeColByEvent.clear();
+  if ( !vChannelColByEvent.empty() )   vChannelColByEvent.clear();
+  if ( !vMCPDGByEvent.empty() )        vMCPDGByEvent.clear();
+  if ( !vMCMOMpdgByEvent.empty() )     vMCMOMpdgByEvent.clear();
+  if ( !vMCWeightByEvent.empty() )     vMCWeightByEvent.clear();
+  if ( !vMCXByEvent.empty() )          vMCXByEvent.clear();
+  if ( !vMCYByEvent.empty() )          vMCYByEvent.clear();
+  if ( !vMCZByEvent.empty() )          vMCZByEvent.clear();
+  if ( !vGeneratorTagByEvent.empty() ) vGeneratorTagByEvent.clear();
+
   for(int index =0 ; index<fNHits; index++)
   {
 
@@ -738,7 +758,7 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 	 
     fNearOrFarToTheBeam = NearOrFar(bIsPDVD , bIsPDHD , hit);
 
-    fEnergy         = hit.SummedADC();///fADCtoEl;
+    fEnergy         = hit.ROISummedADC();///fADCtoEl;
     fPeakTime       = hit.PeakTime();//*ftick_in_mus;
     fSigmaPeakTime  = hit.SigmaPeakTime();//*ftick_in_mus;
     fRMS            = hit.RMS();
@@ -1106,6 +1126,25 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   std::vector<Cluster> vCluster = GetCluster( PTSIsolated , clustersPos[0].size() , v , vEInd1PointByEvent , vEInd2PointByEvent , vChInd1PointByEvent , vChInd2PointByEvent , vEnergyColByEvent , vPeakTimeColByEvent , vChannelColByEvent , vMCPDGByEvent , vMCMOMpdgByEvent , vMCWeightByEvent , vGeneratorTagByEvent , vMCXByEvent , vMCYByEvent , vMCZByEvent , vNoFByEvent);
   NCluster = vCluster.size();
 
+  if ( !vYCluster.empty() )        vYCluster.clear();
+  if ( !vZCluster.empty() )        vZCluster.clear();
+  if ( !vEColCluster.empty() )     vEColCluster.clear();
+  if ( !vEInd1Cluster.empty() )    vEInd1Cluster.clear();
+  if ( !vEInd2Cluster.empty() )    vEInd2Cluster.clear();
+  if ( !vPTCluster.empty() )       vPTCluster.clear();
+  if ( !vNoFCluster.empty() )      vNoFCluster.clear();
+  if ( !vNPointCluster.empty() )   vNPointCluster.clear();
+  if ( !vNColCluster.empty() )     vNColCluster.clear();
+  if ( !vNInd1Cluster.empty() )    vNInd1Cluster.clear();
+  if ( !vNInd2Cluster.empty() )    vNInd2Cluster.clear();
+  if ( !vMCMOMpdgCluster.empty() ) vMCMOMpdgCluster.clear();
+  if ( !vMCPDGCluster.empty() )    vMCPDGCluster.clear();
+  if ( !vMCWeightCluster.empty() ) vMCWeightCluster.clear();
+  if ( !vMCXCluster.empty() )      vMCXCluster.clear();
+  if ( !vMCYCluster.empty() )      vMCYCluster.clear();
+  if ( !vMCZCluster.empty() )      vMCZCluster.clear();
+  if ( !vMCGenTagCluster.empty() ) vMCGenTagCluster.clear();
+  
   int NEmpty_cluster = 0;
   for( int j = 0 ; j < NCluster ; j++ )
   {
@@ -1199,6 +1238,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   lEnergyInd2.clear();
   lPeakTimeInd1.clear();
   lPeakTimeInd2.clear();
+  lPeakAmpInd1.clear();
+  lPeakAmpInd2.clear();
   lYInd1.clear();
   lZInd1.clear();
   lYInd2.clear();
@@ -1233,6 +1274,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
   vEInd2Cluster.clear();
   vPTCluster.clear();
 
+  vNoFCluster.clear();
+
   vNPointCluster.clear();
   vNColCluster.clear();
   vNInd1Cluster.clear();
@@ -1248,6 +1291,8 @@ void pdvdana::SingleHit::analyze(art::Event const& e)
 
   vYPointByEvent.clear();
   vZPointByEvent.clear();
+
+  vNoFByEvent.clear();
 
   vEnergyColByEvent.clear();
   vEInd1PointByEvent.clear();
@@ -1576,7 +1621,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit( bool IsPDVD , bool IsPDHD 
 
       WireInd1.push_back(hit.WireID());
       ChannelInd1.push_back(hit.Channel());
-      EInd1.push_back(hit.SummedADC());
+      EInd1.push_back(hit.ROISummedADC());
       PTInd1.push_back(PeakTime);
       PAInd1.push_back(hit.PeakAmplitude());
       continue;
@@ -1587,7 +1632,7 @@ void pdvdana::SingleHit::GetListOfTimeCoincidenceHit( bool IsPDVD , bool IsPDHD 
 
       WireInd2.push_back(hit.WireID());
       ChannelInd2.push_back(hit.Channel());
-      EInd2.push_back(hit.SummedADC());
+      EInd2.push_back(hit.ROISummedADC());
       PTInd2.push_back(PeakTime);
       PAInd2.push_back(hit.PeakAmplitude());
     }
@@ -1629,7 +1674,8 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(   bool IsPDVD , bool IsPDHD ,
   bool drap;
 
   double y = -999. , z = -999.;
-  auto const wcol = fGeom->WireEndPoints(WireCol);
+  //auto const wcol = fGeom->WireEndPoints(WireCol);
+  auto const [wcolstart, wcolend] = fWireReadout.WireEndPoints(WireCol);
 
   ChIntersectInd1.clear();
   EIntersectInd1.clear();
@@ -1646,8 +1692,9 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(   bool IsPDVD , bool IsPDHD ,
     
       if (bIsPDVD)
       {  
-        auto const wind1 = fGeom->WireEndPoints(elementInd1);
-        bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1.start().Y() , wind1.start().Z() , wind1.end().Y() , wind1.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+        //auto const wind1 = fGeom->WireEndPoints(elementInd1);
+        auto const [wind1start, wind1end] = fWireReadout.WireEndPoints(elementInd1);
+        bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind1start.Y() , wind1start.Z() , wind1end.Y() , wind1end.Z() , wcolstart.Y() , wcolstart.Z() , wcolend.Y() , wcolend.Z() , y , z);
         if (flag)
         {
 	  YInd1.push_back(y);
@@ -1664,7 +1711,8 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(   bool IsPDVD , bool IsPDHD ,
       continue ;
     }
 
-    drap = fGeom->WireIDsIntersect( WireCol , elementInd1 , point);
+    //drap = fGeom->WireIDsIntersect( WireCol , elementInd1 , point);
+    drap = fWireReadout.WireIDsIntersect( WireCol , elementInd1 , point);
     if ( drap )
     {
       YInd1.push_back(point.Y());
@@ -1685,8 +1733,9 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(   bool IsPDVD , bool IsPDHD ,
 
       if (bIsPDVD)
       {
-        auto const wind2 = fGeom->WireEndPoints(elementInd2);
-        bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2.start().Y() , wind2.start().Z() , wind2.end().Y() , wind2.end().Z() , wcol.start().Y() , wcol.start().Z() , wcol.end().Y() , wcol.end().Z() , y , z);
+        //auto const wind2 = fGeom->WireEndPoints(elementInd2);
+        auto const [wind2start, wind2end] = fWireReadout.WireEndPoints(elementInd2);
+        bool flag = IntersectOutsideOfTPC( Ymin , Ymax , Zmin ,Zmax , wind2start.Y() , wind2start.Z() , wind2end.Y() , wind2end.Z() , wcolstart.Y() , wcolstart.Z() , wcolend.Y() , wcolend.Z() , y , z);
         if (flag)
         {
           YInd2.push_back(y);
@@ -1702,7 +1751,8 @@ void pdvdana::SingleHit::GetListOfCrossingChannel(   bool IsPDVD , bool IsPDHD ,
       ++ch2; 
       continue ;
     }
-    drap = fGeom->WireIDsIntersect( WireCol , elementInd2 , point);
+    //drap = fGeom->WireIDsIntersect( WireCol , elementInd2 , point);
+    drap = fWireReadout.WireIDsIntersect( WireCol , elementInd2 , point);
     if ( drap ) 
     { 
       YInd2.push_back(point.Y());
